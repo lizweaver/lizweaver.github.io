@@ -1,2 +1,2 @@
-# lizweaver.github.io
-personal website
+# Elizabeth Jin Weaver
+
