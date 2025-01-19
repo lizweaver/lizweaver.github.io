@@ -15,8 +15,8 @@
             margin: 0 auto;
             padding: 2rem;
             line-height: 1.6;
-            color: #333;
-            background-color: #f5f5f5; /* Light gray background */
+            color: #1C3620;
+            background-color: #FFFFFB; /* Light gray background */
         }
 
         /* Header styling */
@@ -55,12 +55,16 @@
         .ascii-art {
             font-family: 'Inconsolata', monospace;
             white-space: pre;
-            font-size: 10px;
-            line-height: 1;  /* Reduced from 1.2 to 1 for tighter spacing */
+            font-size: 8px;
+            line-height: 0.8;
             overflow-x: auto;
-            color: #888;
+            color: #1C3620;
             margin: 2rem 0;
             font-weight: 300;
+            max-width: 100%;
+            display: block;
+            transform: scale(0.8);
+            transform-origin: center;
         }
 
         /* Main content */
@@ -119,7 +123,8 @@
         </nav>
     </header>
 
-    <div class="ascii-art">............................. ...............  ................. ................. ................ .......  ........   ......  ..........==...................... ................ .................   ............................. ...............  ................. ................. ................ .......  ........   ......  ..........==...................... ................ .................   
+    <div class="ascii-art">
+        ............................. ...............  ................. ................. ................ .......  ........   ......  ..........==...................... ................ .................   ............................. ...............  ................. ................. ................ .......  ........   ......  ..........==...................... ................ .................   
         .  ................  ................  ...............  ................  ....... .........  .................................. ..........-*..:=.........  ................ .............................  ................  ................  ...............  ................  ....... .........  .................................. ..........-*..:=.........  ................ ............................
         .......................................................................................................................................::..#:*@=...............................................................................................................................................................................................::..#:*@=........................................................
         ....... .......  ............... .................. .......  ....... .......  ....... ........   ....... .......   ...............   ..+@*:@%=................ ....... ........................... ............ .......  ............... .................. .......  ....... .......  ....... ........   ....... .......   ...............   ..+@*:@%=................ ....... ........................... .....
@@ -192,7 +197,7 @@
         <div class="profile-section">
             <h1>Hi, I'm Liz</h1>
             <p>I'm an undergraduate student at UC Berkeley studying Computer Science. I am also a student in Professor <a href="#">Aditi Krishnapriyan</a>'s lab at Berkeley AI Research (BAIR).</p>
-            <p>My interests mainly lie in the spaces of <a href="#">geometric deep learning</a> and <a href="#">AI+Science</a>. I'm currently working on physics inspired machine learning for molecular dynamics.</p>
+            <p>My interests mainly lie in the spaces of geometric deep learning and AI+Science. I'm currently working on physics inspired machine learning for molecular dynamics.</p>
             <p>Outside of research, I enjoy dabbling in various books and textbooks, dancing, and hiking.</p>
         </div>
         <div class="profile-image-container">
