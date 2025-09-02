@@ -101,13 +101,14 @@ nav a.nav-dark {
     text-align: left;
 }
 
-/* Projects and blog page layout - left aligned with home page margins */
+/* Projects and blog page layout - match home page spacing */
 .main-content.projects,
 .main-content.blog {
     max-width: 1000px;
     margin-left: auto;
     margin-right: auto;
     margin-top: -2rem;
+    padding-left: 0;
 }
 
 /* Profile section */
@@ -123,7 +124,6 @@ nav a.nav-dark {
     margin-top: 0;
     font-weight: 300;
     text-align: left;
-    white-space: nowrap;
 }
 
 /* Text content should be left-aligned within centered blocks */
@@ -134,11 +134,11 @@ nav a.nav-dark {
     max-width: 100%;
 }
 
-/* Center the project content blocks while keeping text left-aligned */
+/* Project content blocks - no extra centering margins */
 .project-category,
 .project-section {
-    margin-left: auto;
-    margin-right: auto;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 .profile-image {
@@ -210,7 +210,6 @@ b {
     margin-bottom: 0.5rem;
     font-weight: 300;
     text-align: left;
-    white-space: nowrap;
 }
 
 .project-header p {
