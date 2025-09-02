@@ -101,12 +101,13 @@ nav a.nav-dark {
     text-align: left;
 }
 
-/* Projects and blog page layout - centered content */
+/* Projects and blog page layout - left aligned with home page margins */
 .main-content.projects,
 .main-content.blog {
-    max-width: 800px;
+    max-width: 1000px;
     margin-left: auto;
     margin-right: auto;
+    margin-top: -2rem;
 }
 
 /* Profile section */
@@ -208,6 +209,8 @@ b {
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
     font-weight: 300;
+    text-align: left;
+    white-space: nowrap;
 }
 
 .project-header p {
@@ -398,10 +401,12 @@ b {
     }
 
     /* Allow heading to wrap on mobile */
-    .profile-section h1 {
+    .profile-section h1,
+    .project-header h1 {
         white-space: normal;
         font-size: 2rem;
         line-height: 1.2;
+        text-align: left;
     }
 
     /* Stack comparison images on mobile */
