@@ -92,6 +92,15 @@ nav a.nav-dark {
     margin-top: -2rem;
 }
 
+/* Home page specific styling - keep it centered */
+.main-content.home .profile-section {
+    text-align: left;
+}
+
+.main-content.home .profile-section h1 {
+    text-align: left;
+}
+
 /* Projects and blog page layout - centered content */
 .main-content.projects,
 .main-content.blog {
@@ -102,7 +111,7 @@ nav a.nav-dark {
 
 /* Profile section */
 .profile-section {
-    text-align: center;
+    text-align: left;
 }
 
 .profile-section h1 {
@@ -112,7 +121,7 @@ nav a.nav-dark {
     margin-bottom: 0.5rem;
     margin-top: 0;
     font-weight: 300;
-    text-align: center;
+    text-align: left;
     white-space: nowrap;
 }
 
