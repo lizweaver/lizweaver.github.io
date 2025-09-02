@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project 0: Becoming Friends with Your Camera - Elizabeth Weaver</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <header>
+        <a href="../index.html" style="text-decoration: none;"><h1 class="site-title">Elizabeth Weaver</h1></a>
+        <nav>
+            <a href="../index.html" class="nav-gray">Home</a>
+            <a href="../projects.html" class="nav-dark">Projects</a>
+            <a href="../blog.html" class="nav-green">Blog</a>
+        </nav>
+    </header>
+
+    <div class="ascii-art"></div>
+
+    <div class="breadcrumb">
+        <a href="../projects.html">Projects</a> / <a href="index.html">CS180</a> / Project 0: Becoming Friends with Your Camera
+    </div>
+
+    <main class="main-content projects">
+        <div class="profile-section">
+            <div class="project-header">
+                <h1>Project 0: Becoming Friends with Your Camera</h1>
+                <p>The goal of this project is to get some intuitive understanding of the somewhat subtle relationship between perspective, focal length/zoom, and the center of projection.</p>
+            </div>
+
+            <div class="project-section">
+                <h2>Overview</h2>
+                <p>In this class, we want you to become friends with every pixel. The first step toward this goal is to become friends with your camera—e.g., the one in your smartphone. In particular, the goal of this project is to get you some intuitive understanding of the somewhat subtle relationship between perspective, focal length/zoom, and the center of projection.</p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1: Selfie: The Wrong Way vs. The Right Way</h2>
+                <p>Take a picture of your friend (or yourself) from close up. You get a typical distorted selfie image. Now step back several feet from your subject, zoom in, and take a second picture. Try to get the face in the second photo to be the same size as in the first photo. If you've done things right, the second portrait should look much better than the first one.</p>
+                
+                <div class="image-container">
+                    <img src="project0_media/close_up_face.jpg" alt="Close-up selfie showing distortion" class="cropped-gif gif-medium">
+                    <div class="image-caption">Close-up selfie: The "wrong way" showing typical distortion</div>
+                </div>
+                
+                <div class="image-container">
+                    <img src="project0_media/zoomed_in_face.jpg" alt="Stepped back and zoomed in selfie" class="cropped-gif gif-medium">
+                    <div class="image-caption">Stepped back and zoomed in: The "right way" with better proportions</div>
+                </div>
+
+                <p><strong>Analysis:</strong> [Add your explanation of why the second portrait looks better than the first]</p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2: Architectural Perspective Compression</h2>
+                <p>Let's repeat the same procedure in reverse, for an urban scene. Pick a nice view down a long street (or a walking path on campus), zoom in, and take a photo. Now, walk down the street in the direction of your first shot, and take a second photo without zoom, such that the scene in the two photos appears approximately the same size. The first picture should look flattened, or compressed, compared to the second.</p>
+                
+                <div class="image-container">
+                    <img src="path-to-your-compressed-image.jpg" alt="Zoomed in street view showing compression" class="cropped-gif gif-large">
+                    <div class="image-caption">Zoomed in view: Compressed perspective making the scene appear flattened</div>
+                </div>
+                
+                <div class="image-container">
+                    <img src="path-to-your-uncompressed-image.jpg" alt="Close up street view without zoom" class="cropped-gif gif-large">
+                    <div class="image-caption">Close up without zoom: Natural perspective with depth</div>
+                </div>
+
+                <p><strong>Analysis:</strong> [Add your explanation of why the first picture looks flattened compared to the second]</p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 3: The Dolly Zoom</h2>
+                <p>In this part, we will be duplicating a classic film effect called the dolly zoom. It is a camera movement also known as the "Vertigo shot", after a famous scene in Hitchcock's Vertigo. The idea is to simultaneously move the camera back while also zooming in.</p>
+                
+                <p>I set up a scene and took 12 still photos while moving the camera back and zooming in, keeping the flowers and vase roughly the same size. The stills were then combined into an animated GIF file to create the dolly zoom effect.</p>
+                
+                <div class="image-container">
+                    <img src="project0_media/flowers.gif" alt="Dolly zoom effect demonstration" class="cropped-gif gif-large">
+                    <div class="image-caption">Dolly zoom effect: Moving camera back while zooming in creates the characteristic "Vertigo shot"</div>
+                </div>
+
+                <p><strong>Technical Process:</strong> [Describe your setup, how many shots you took, and any challenges you encountered]</p>
+            </div>
+
+        </div>
+    </main>
+    <script src="../ascii-loader.js"></script>
+</body>
+</html>

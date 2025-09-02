@@ -7,120 +7,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
-    <style>
-        /* Typography */
-        body {
-            font-family: "Newsreader", serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-            line-height: 1.3;
-            color: #1C3620;
-            background-color: #FFFFFB;
-            font-weight: 250;
-            font-size: 20px;
-        }
-
-        /* Header styling */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0;
-        }
-
-        .site-title {
-            font-family: "Newsreader", serif;
-            color: #659157;
-            font-size: 2rem;
-            font-weight: normal;
-            margin: 0;
-            font-weight: 400;
-        }
-
-        /* Navigation */
-        nav a {
-            text-decoration: none;
-            margin-left: 2rem;
-            transition: color 0.3s;
-        }
-
-        nav a.nav-green {
-            color: #659157;
-        }
-
-        nav a.nav-gray {
-            color: #7C809B;
-            font-weight: 200;
-        }
-
-        nav a.nav-dark {
-            color: #1C3620;
-        }
-
-        /* ASCII art banner */
-        .ascii-art {
-            font-family: 'Inconsolata', monospace;
-            white-space: pre;
-            font-size: 7.5px;
-            line-height: 0.6;
-            /* overflow-x: auto; */
-            color: #1C3620;
-            margin: 0;
-            font-weight: 300;
-            display: block;
-            transform: scale(0.8);
-            transform-origin: left top;
-            width: max-content;
-            position: relative;
-            left: 0;
-        }
-
-        /* Main content */
-        .main-content {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 4rem;
-            align-items: start;
-            margin-top: 1rem;
-        }
-
-        /* Profile section */
-        .profile-section h1 {
-            font-family: "Newsreader", serif;
-            color: #1C3620;
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            margin-top: 0;
-            font-weight: 300;
-        }
-
-        .profile-image {
-            border-radius: 50%;
-            width: 300px;
-            height: 300px;
-            object-fit: cover;
-        }
-
-        /* Links styling */
-        a {
-            color: #659157;
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        b {
-            color: #7C809B;
-            text-decoration: none;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1 class="site-title">Elizabeth Weaver</h1>
+        <a href="index.html" style="text-decoration: none;"><h1 class="site-title">Elizabeth Weaver</h1></a>
         <nav>
             <a href="index.html" class="nav-gray active">Home</a>
             <a href="projects.html" class="nav-dark">Projects</a>
@@ -128,11 +19,21 @@
         </nav>
     </header>
 
-    <main class="main-content">
+    <div class="ascii-art"></div>
+
+    <main class="main-content projects">
         <div class="profile-section">
             <h1>Projects</h1>
-            <p>Under construction, please come back later!!</p>
+            <div class="project-category">
+                <h2>Academic Projects</h2>
+                <div class="project-item">
+                    <h3><a href="cs180/index.html">CS180: Intro to Computer Vision and Computational Photography</a></h3>
+                    <p>A collection of projects exploring computer vision fundamentals, image processing, and computational photography techniques.</p>
+                </div>
+            </div>
+            <p style="margin-top: 2rem; color: #7C809B; font-style: italic;">More projects coming soon...</p>
         </div>
     </main>
+    <script src="ascii-loader.js"></script>
 </body>
 </html>
