@@ -111,6 +111,11 @@ nav a.nav-dark {
     padding-left: 0;
 }
 
+/* Pages with breadcrumbs need different spacing */
+.main-content.projects.with-breadcrumb {
+    margin-top: -2rem;
+}
+
 /* Profile section */
 .profile-section {
     text-align: left;
@@ -306,9 +311,9 @@ b {
     max-width: 100%;
     height: auto;
     object-fit: cover;
-    object-position: center center;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    clip-path: inset(0 8% 10% 8%);
 }
 
 /* Less aggressive cropping for photos */
