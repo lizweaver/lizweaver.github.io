@@ -272,20 +272,36 @@ b {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Specific cropping sizes */
+/* iPhone vertical photo sizes */
 .gif-small {
-    width: 300px;
-    height: 200px;
+    width: 250px;
+    height: 333px; /* iPhone aspect ratio ~3:4 */
 }
 
 .gif-medium {
-    width: 500px;
-    height: 300px;
+    width: 350px;
+    height: 467px; /* iPhone aspect ratio ~3:4 */
 }
 
 .gif-large {
-    width: 700px;
+    width: 500px;
+    height: 667px; /* iPhone aspect ratio ~3:4 */
+}
+
+/* Landscape/GIF sizes for horizontal content */
+.gif-landscape-small {
+    width: 400px;
+    height: 300px;
+}
+
+.gif-landscape-medium {
+    width: 600px;
     height: 400px;
+}
+
+.gif-landscape-large {
+    width: 800px;
+    height: 500px;
 }
 
 /* Center alignment for images */
@@ -312,6 +328,24 @@ b {
     margin-top: 0.5rem;
 }
 
+/* Side-by-side comparison layout */
+.comparison-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin: 2rem 0;
+    align-items: start;
+}
+
+.comparison-item {
+    text-align: center;
+}
+
+.comparison-item img {
+    display: block;
+    margin: 0 auto 0.5rem auto;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .main-content,
@@ -327,7 +361,21 @@ b {
         max-width: 200px;
     }
 
+    /* Stack comparison images on mobile */
+    .comparison-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    /* Responsive iPhone photo sizes */
     .gif-small, .gif-medium, .gif-large {
+        width: 100%;
+        max-width: 280px;
+        height: auto;
+    }
+
+    /* Responsive landscape sizes */
+    .gif-landscape-small, .gif-landscape-medium, .gif-landscape-large {
         width: 100%;
         max-width: 350px;
         height: auto;
