@@ -107,7 +107,7 @@ nav a.nav-dark {
     max-width: 1000px;
     margin-left: auto;
     margin-right: auto;
-    margin-top: -4rem;
+    margin-top: -2rem;
     padding-left: 0;
 }
 
@@ -195,8 +195,8 @@ b {
 
 /* Breadcrumb styling */
 .breadcrumb {
-    margin-top: 1rem;
-    margin-bottom: 3rem;
+    margin-top: -1rem;
+    margin-bottom: 1.5rem;
     color: #7C809B;
     font-size: 0.9rem;
 }
