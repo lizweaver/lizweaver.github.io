@@ -107,7 +107,7 @@ nav a.nav-dark {
     max-width: 1000px;
     margin-left: auto;
     margin-right: auto;
-    margin-top: -3rem;
+    margin-top: -4rem;
     padding-left: 0;
 }
 
@@ -297,6 +297,25 @@ b {
     max-width: 100%;
     height: auto;
     object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* More aggressive cropping for GIFs (like flowers) */
+.cropped-gif-tight {
+    max-width: 100%;
+    height: auto;
+    object-fit: cover;
+    object-position: center center;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Less aggressive cropping for photos */
+.cropped-photo {
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
