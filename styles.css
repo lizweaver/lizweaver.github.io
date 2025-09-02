@@ -113,7 +113,7 @@ nav a.nav-dark {
 
 /* Pages with breadcrumbs need different spacing */
 .main-content.projects.with-breadcrumb {
-    margin-top: -6rem;
+    margin-top: -8rem;
 }
 
 /* Profile section */
@@ -195,7 +195,7 @@ b {
 
 /* Breadcrumb styling */
 .breadcrumb {
-    margin-top: -4.5rem;
+    margin-top: -8rem;
     margin-bottom: 1.5rem;
     color: #7C809B;
     font-size: 0.9rem;
