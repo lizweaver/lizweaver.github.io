@@ -402,27 +402,6 @@ b {
     .image-container {
         page-break-inside: avoid;
     }
-    
-    /* Fix comparison layout for print - use flexbox instead of grid */
-    .comparison-container {
-        display: flex;
-        flex-direction: row;
-        gap: 2rem;
-        margin: 2rem 0;
-        align-items: flex-start;
-        page-break-inside: avoid;
-    }
-    
-    .comparison-item {
-        flex: 1;
-        text-align: center;
-        page-break-inside: avoid;
-    }
-    
-    .comparison-item img {
-        max-width: 100%;
-        height: auto;
-    }
 }
 
 /* Side-by-side comparison layout */
