@@ -107,13 +107,13 @@ nav a.nav-dark {
     max-width: 1000px;
     margin-left: auto;
     margin-right: auto;
-    margin-top: 0;
+    margin-top: -1rem;
     padding-left: 0;
 }
 
 /* Pages with breadcrumbs need different spacing */
 .main-content.projects.with-breadcrumb {
-    margin-top: -3rem;
+    margin-top: -2rem;
 }
 
 /* Profile section */
@@ -383,7 +383,7 @@ b {
 
 /* Adjust caption spacing for cropped GIFs */
 .cropped-gif-tight + .image-caption {
-    margin-top: -2rem;
+    margin-top: -4rem;
 }
 
 /* Side-by-side comparison layout */
