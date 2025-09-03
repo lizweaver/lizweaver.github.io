@@ -313,7 +313,7 @@ b {
     object-fit: cover;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    clip-path: inset(0 8% 10% 8%);
+    clip-path: inset(0 8% 10% 8% round 8px);
 }
 
 /* Less aggressive cropping for photos */
