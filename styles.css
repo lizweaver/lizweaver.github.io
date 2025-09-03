@@ -113,7 +113,7 @@ nav a.nav-dark {
 
 /* Pages with breadcrumbs need different spacing */
 .main-content.projects.with-breadcrumb {
-    margin-top: -4rem;
+    margin-top: -3rem;
 }
 
 /* Profile section */
@@ -379,6 +379,11 @@ b {
     color: #7C809B;
     font-style: italic;
     margin-top: 0.5rem;
+}
+
+/* Adjust caption spacing for cropped GIFs */
+.cropped-gif-tight + .image-caption {
+    margin-top: -2rem;
 }
 
 /* Side-by-side comparison layout */
