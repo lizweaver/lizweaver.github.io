@@ -396,14 +396,25 @@ b {
     margin-top: 0.5rem;
 }
 
+/* Project-specific caption styling for better visibility */
+.project-caption {
+    font-size: 1rem;
+    color: #1C3620;
+    font-style: italic;
+    margin-top: 0.5rem;
+    font-weight: 300;
+}
+
 /* Adjust caption spacing for cropped GIFs */
-.cropped-gif-tight + .image-caption {
+.cropped-gif-tight + .image-caption,
+.cropped-gif-tight + .project-caption {
     margin-top: -4rem;
 }
 
 /* Print styles to fix GIF caption overlap */
 @media print {
-    .cropped-gif-tight + .image-caption {
+    .cropped-gif-tight + .image-caption,
+    .cropped-gif-tight + .project-caption {
         margin-top: 0.5rem;
         page-break-inside: avoid;
     }
