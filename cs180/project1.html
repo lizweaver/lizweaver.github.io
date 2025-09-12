@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project 1: Colorizing the Prokudin-Gorskii photo collection - Elizabeth Weaver</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <header>
+        <a href="../index.html" style="text-decoration: none;"><h1 class="site-title">Elizabeth Weaver</h1></a>
+        <nav>
+            <a href="../index.html" class="nav-gray">Home</a>
+            <a href="../projects.html" class="nav-dark">Projects</a>
+            <a href="../blog.html" class="nav-green">Blog</a>
+        </nav>
+    </header>
+
+    <div class="ascii-art"></div>
+
+    <div class="breadcrumb">
+        <a href="../projects.html">Projects</a> / <a href="index.html">CS180</a> / Project 1: Colorizing the Prokudin-Gorskii photo collection
+    </div>
+
+    <main class="main-content projects with-breadcrumb">
+        <div class="profile-section">
+            <div class="project-header">
+                <h1>Project 1: Colorizing the Prokudin-Gorskii photo collection</h1>
+                <p>
+                    Sergei Mikhailovich Prokudin-Gorskii (1863-1944) photographed various scenes of the Russian Empire 
+                    in the early 1900s. He recorded three exposures of every scene onto a glass plate using a red, a 
+                    green, and a blue filter. At the time, it wasn't possible to capture color images, let alone print 
+                    them. His RGB glass plate negatives, capturing the last years of the Russian Empire, survived and 
+                    were purchased in 1948 by the Library of Congress.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Overview</h2>
+                <p>
+                    The goal of this assignment is to take the digitized Prokudin-Gorskii glass plate images and, using 
+                    image processing techniques, automatically produce a color image with as few visual artifacts as 
+                    possible. In order to do this, you will need to extract the three color channel images, place them 
+                    on top of each other, and align them so that they form a single RGB color image.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Alignment Algorithm</h2>
+                <p>
+                    First, I tried to align the images using a naive approach. I separated the original image into thirds 
+                    to get the red, green, and blue channels of the image. I then cropped the image channels by 10% on each 
+                    side and aligned them using normalized cross-correlation. To do this, we search over a displacement 
+                    window of size 15x15 centered on the center of the image for both the red and blue channels with 
+                    respect to the green channel, scoring all of the alignments with normalized cross-correlation 
+                    (every combination of x and y between -15 and 15). I then stacked the aligned channels on top of each 
+                    other to create a color image. This approach worked well for small images, but for larger images, it 
+                    was too slow and the results were not very good. 
+                    
+                    I then implemented a more comprehensive alignment algorithm using a multi-scale approach, where we 
+                    first align the images at a lower resolution with a smaller displacement window and then progressively 
+                    align the images at higher resolution, making sure to scale up the "best displacement" from the coarser 
+                    images to the finer images. This tool is also called an "image pyramid". I reduced the search window for 
+                    coarser images to 75% for the second pyramid level and 50% for the third pyramid level. Otherwise, all 
+                    methods were the same as the single alignment approach. This approach worked much better for the larger 
+                    images and was much faster.
+
+                    Both of these algorithms also have an option to use euclidean distance as a scoring metric instead of 
+                    normalized cross-correlation. In my experience, both of these methods gave me the same image offsets. 
+                    I decided to use NCC for all of the results below. 
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Single Align Photo Results</h2>
+                <p>
+                    Here are the results of the single alignment algorithm using NCC (Normalized Cross Correlation). 
+                    For each image, the left shows the unaligned version (original channels simply stacked) 
+                    and the right shows the aligned result.
+                </p>
+
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/cathedral.jpg" alt="cathedral unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Cathedral</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/image_results_single_align/cathedral_ncc.jpg" alt="cathedral NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Cathedral, Red Offset: (7, 1), Blue Offset: (-5, -2)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/monastery.jpg" alt="cathedral unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Monastery</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/image_results_single_align/monastery_ncc.jpg" alt="monastery NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Monastery, Red Offset: (6, 1), Blue Offset: (3, -2)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">`
+                        <img src="project1/web_unaligned/tobolsk.jpg" alt="tobolsk unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Tobolsk</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/image_results_single_align/tobolsk_ncc.jpg" alt="tobolsk NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Tobolsk, Red Offset: (4, 1), Blue Offset: (-3, -3)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Pyramid Align Photo Results</h2>
+                <p>
+                    Here are the results of the pyramid alignment algorithm using NCC (Normalized Cross Correlation).
+                    A 10% border crop was used before image alignment, and 4 levels of image pyramid were used. The finest 
+                    image pyramid level used a search window of size 15x15, the second level used a search window of size 
+                    11x11, and the last two levels used a search window size of 7x7. For each image, the left shows the 
+                    unaligned version (original channels simply stacked) and the right shows the aligned result. All tif 
+                    images were converted to jpg for web display, but the original aligned tif images are avaliable in the 
+                    website git repository.
+                </p>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/cathedral.jpg" alt="cathedral unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Cathedral</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/cathedral_ncc.jpg" alt="cathedral NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Cathedral, Red Offset: (7, 1), Blue Offset: (-5, -2)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/church.jpg" alt="church unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Church</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/church_ncc.jpg" alt="church NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Church, Red Offset: (33, -8), Blue Offset: (-25, -4)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/emir.jpg" alt="emir unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Emir</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/emir_ncc.jpg" alt="emir NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Emir, Red Offset: (57, 17), Blue Offset: (-49, -24)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/harvesters.jpg" alt="harvesters unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Harvesters</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/harvesters_ncc.jpg" alt="harvesters NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Harvesters, Red Offset: (65, -3), Blue Offset: (-60, -16)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/icon.jpg" alt="icon unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Icon</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/icon_ncc.jpg" alt="icon NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Icon, Red Offset: (48, 5), Blue Offset: (-41, -17)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/italil.jpg" alt="italil unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Italil</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/italil_ncc.jpg" alt="italil NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Italil, Red Offset: (38, 15), Blue Offset: (-38, -21)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/lastochikino.jpg" alt="lastochikino unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Lastochikino</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/lastochikino_ncc.jpg" alt="lastochikino NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Lastochikino, Red Offset: (78, -7), Blue Offset: (3, 2)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/lugano.jpg" alt="lugano unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Lugano</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/lugano_ncc.jpg" alt="lugano NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Lugano, Red Offset: (52, -13), Blue Offset: (-41, 16)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/melons.jpg" alt="melons unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Melons</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/melons_ncc.jpg" alt="melons NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Melons, Red Offset: (96, 4), Blue Offset: (-82, -10)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/monastery.jpg" alt="monastery unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Monastery</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/monastery_ncc.jpg" alt="monastery NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Monastery, Red Offset: (6, 1), Blue Offset: (3, -2)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/self_portrait.jpg" alt="self_portrait unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Self Portrait</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/self_portrait_ncc.jpg" alt="self_portrait NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Self Portrait, Red Offset: (98, 8), Blue Offset: (-79, -29)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/siren.jpg" alt="siren unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Siren</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/siren_ncc.jpg" alt="siren NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Siren, Red Offset: (47, -18), Blue Offset: (-49, 6)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/three_generations.jpg" alt="three_generations unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Three Generations</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/three_generations_ncc.jpg" alt="three_generations NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Three Generations, Red Offset: (58, -3), Blue Offset: (-53, -14)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                        <img src="project1/web_unaligned/tobolsk.jpg" alt="tobolsk unaligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">Unaligned Tobolsk</div>
+                    </div>
+                    <div class="comparison-item">
+                        <img src="project1/web_images/tobolsk_ncc.jpg" alt="tobolsk NCC aligned" class="cropped-gif gif-medium">
+                        <div class="image-caption">NCC Aligned Tobolsk, Red Offset: (4, 1), Blue Offset: (-3, -3)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Extra Photo Results</h2>
+                <p>
+                    We were also asked to download four more images and align them using the same methods. Here are the results for the images that I chose, 
+                    again with unaligned and aligned versions. The aligned images were aligned using the same pyramid alignment algorithm as the other images.
+                </p>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                         <img src="project1/web_unaligned/haystacks.jpg" alt="haystacks unaligned" class="cropped-gif gif-medium">
+                         <div class="image-caption">Unaligned Haystacks</div>
+                    </div>
+                    <div class="comparison-item">
+                         <img src="project1/web_extra_images/haystacks_ncc.jpg" alt="haystacks NCC aligned" class="cropped-gif gif-medium">
+                         <div class="image-caption">NCC Aligned Haystacks, Red Offset: (71, -10), Blue Offset: (-66, 6)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                         <img src="project1/web_unaligned/man_and_sacks.jpg" alt="man_and_sacks unaligned" class="cropped-gif gif-medium">
+                         <div class="image-caption">Unaligned Man and Sacks</div>
+                    </div>
+                    <div class="comparison-item">
+                         <img src="project1/web_extra_images/man_and_sacks_ncc.jpg" alt="man_and_sacks NCC aligned" class="cropped-gif gif-medium">
+                         <div class="image-caption">NCC Aligned Man and Sacks, Red Offset: (60, 7), Blue Offset: (-56, -21)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                         <img src="project1/web_unaligned/rubble_building.jpg" alt="rubble_building unaligned" class="cropped-gif gif-medium">
+                         <div class="image-caption">Unaligned Rubble Building</div>
+                    </div>
+                    <div class="comparison-item">
+                         <img src="project1/web_extra_images/rubble_building_ncc.jpg" alt="rubble_building NCC aligned" class="cropped-gif gif-medium">
+                         <div class="image-caption">NCC Aligned Rubble Building, Red Offset: (44, 1), Blue Offset: (-26, -10)</div>
+                    </div>
+                </div>
+                <div class="comparison-container">
+                    <div class="comparison-item">
+                         <img src="project1/web_unaligned/statue.jpg" alt="statue unaligned" class="cropped-gif gif-medium">
+                         <div class="image-caption">Unaligned Statue</div>
+                    </div>
+                    <div class="comparison-item">
+                         <img src="project1/web_extra_images/statue_ncc.jpg" alt="statue NCC aligned" class="cropped-gif gif-medium">
+                         <div class="image-caption">NCC Aligned Statue, Red Offset: (120, 0), Blue Offset: (-44, -2)</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+    <script src="../ascii-loader.js"></script>
+</body>
+</html>
+
