@@ -56,10 +56,46 @@
                 </p>
                 <p>
                     All of these methods used 0 padding for the image, thus treating the edges of the image the same. I double checked 
-                    that all of these methods gave the same results by running np.allclose on the results of the three functions.
+                    that all of these methods gave the same results by running np.allclose on the results of the three functions. Code 
+                    snippets are shown below.
                 </p>
+                <div class="code-container">
+                    <div class="code-title">Four nested loops implementation</div>
+                    <pre><code>def conv_with_four_loops(image, kernel):
+                        kernel_h, kernel_w = kernel.shape
+                        padding_h, padding_w = kernel_h // 2, kernel_w // 2
+                        image_padded = np.pad(image, ((padding_h, padding_h), (padding_w, padding_w)), mode='constant')
+                        kernel_flipped = np.flip(kernel, axis=(0, 1))
+                        result_image = np.zeros_like(image)
+                    
+                        for i in range(image.shape[0]):
+                            for j in range(image.shape[1]):
+                                for k in range(kernel_h):
+                                    for l in range(kernel_w):
+                                        result_image[i, j] += image_padded[i + k, j + l] * kernel_flipped[k, l]
+                    
+                        return result_image</code></pre>
+                </div>
+                <div class="code-container">
+                    <div class="code-title">Two nested loops implementation</div>
+                    <pre><code>def conv_with_two_loops(image, kernel):
+                        kernel_h, kernel_w = kernel.shape
+                        padding_h, padding_w = kernel_h // 2, kernel_w // 2
+                        image_padded = np.pad(image, ((padding_h, padding_h), (padding_w, padding_w)), mode='constant')
+                        kernel_flipped = np.flip(kernel, axis=(0, 1))
+                        result_image = np.zeros_like(image)
+                    
+                        for i in range(image.shape[0]):
+                            for j in range(image.shape[1]):
+                                result_image[i, j] = np.dot(
+                                    image_padded[i:i+kernel_h, j:j+kernel_w].ravel(),
+                                    kernel_flipped.ravel()
+                                )
+                    
+                        return result_image</code></pre>
+                </div>
                 <div class="image-container">
-                    <img src="project2_images/box_filter_comparison_image_of_me.jpg" alt="me box comparison">
+                    <img src="project_2/project2_images/box_filter_comparison_image_of_me.jpg" alt="me box comparison">
                     <div class="project-caption">Comparison of the three functions for a 9x9 box filter on a grayscale image of me</div>
                 </div>
                 <p>
@@ -73,11 +109,11 @@
                     These images are shown below.
                 </p>
                 <div class="image-container">
-                    <img src="project2_images/Dx_comparison_image_of_me.jpg" alt="me Dx comparison">
+                    <img src="project_2/project2_images/Dx_comparison_image_of_me.jpg" alt="me Dx comparison">
                     <div class="project-caption">Partial derivatives in the x direction of the image of me</div>
                 </div>
                 <div class="image-container">
-                    <img src="project2_images/Dy_comparison_image_of_me.jpg" alt="me Dy comparison">
+                    <img src="project_2/project2_images/Dy_comparison_image_of_me.jpg" alt="me Dy comparison">
                     <div class="project-caption">Partial derivatives in the y direction of the image of me</div>
                 </div>
             </div>
@@ -96,11 +132,11 @@
                     thresholds I tested below, including 0.325.
                 </p>
                 <div class="image-container">  
-                    <img src="project2_images/cameraman_gradient_magnitude.jpg" alt="cameraman gradient magnitude">
+                    <img src="project_2/project2_images/cameraman_gradient_magnitude.jpg" alt="cameraman gradient magnitude">
                     <div class="project-caption">Partial derivatives and gradient magnitude of the cameraman image</div>
                 </div>
                 <div class="image-container"> 
-                    <img src="project2_images/cameraman_edges.jpg" alt="cameraman edge detector">
+                    <img src="project_2/project2_images/cameraman_edges.jpg" alt="cameraman edge detector">
                     <div class="project-caption">Edge detection using gradient magnitude with various thresholds. 0.325 looks best.</div>
                 </div>
             </div>
@@ -116,11 +152,11 @@
                     detector with different thresholds below, including 0.08.
                 </p>
                 <div class="image-container">
-                    <img src="project2_images/cameraman_smoothed_dx_dy.jpg" alt="cameraman smoothed dx dy">
+                    <img src="project_2/project2_images/cameraman_smoothed_dx_dy.jpg" alt="cameraman smoothed dx dy">
                     <div class="project-caption">Partial derivatives in x and y directions after smoothing with a Gaussian filter</div>
                 </div>
                 <div class="image-container">
-                    <img src="project2_images/cameraman_edges_smoothed.jpg" alt="cameraman edge detector smoothed">
+                    <img src="project_2/project2_images/cameraman_edges_smoothed.jpg" alt="cameraman edge detector smoothed">
                     <div class="project-caption">Edge detection using smoothed image and gradient magnitude with various thresholds. 0.08 looks best.</div>
                 </div>
                 <p>
@@ -130,15 +166,15 @@
                     image with the Gaussian and finite difference filters one at a time. The best threshold is still 0.08.
                 </p>            
                 <div class="image-container">
-                    <img src="project2_images/cameraman_dx_dy_gaussian_dog_filter.jpg" alt="cameraman dx dy gaussian dog filter">
+                    <img src="project_2/project2_images/cameraman_dx_dy_gaussian_dog_filter.jpg" alt="cameraman dx dy gaussian dog filter">
                     <div class="project-caption">Filters created by convolving the Gaussian and finite difference filters together</div>
                 </div>
                 <div class="image-container">
-                    <img src="project2_images/cameraman_gradient_magnitude_gaussian_dog_filter.jpg" alt="cameraman gradient magnitude gaussian dog filter">
+                    <img src="project_2/project2_images/cameraman_gradient_magnitude_gaussian_dog_filter.jpg" alt="cameraman gradient magnitude gaussian dog filter">
                     <div class="project-caption">Partial derivatives and gradient magnitude with Gaussian DoG filter</div>
                 </div>
                 <div class="image-container">
-                    <img src="project2_images/cameraman_edges_smoothed_gradient_gaussian.jpg" alt="cameraman edge detector with gradient of gaussian">
+                    <img src="project_2/project2_images/cameraman_edges_smoothed_gradient_gaussian.jpg" alt="cameraman edge detector with gradient of gaussian">
                     <div class="project-caption">Edge detection using Gaussian DoG filter with various thresholds. 0.08 looks best.</div>
                 </div>
                 <p>
@@ -146,7 +182,7 @@
                     below of the detected edges with both methods (both with the same threshold of 0.8). 
                 </p>
                 <div class="image-container">
-                    <img src="project2_images/cameraman_gradient_magnitude_comparison.jpg" alt="cameraman gradient magnitude comparison">
+                    <img src="project_2/project2_images/cameraman_gradient_magnitude_comparison.jpg" alt="cameraman gradient magnitude comparison">
                     <div class="project-caption">Comparison of the binarized gradient magnitude of the original blurred method and the Gaussian DoG filter method with the same threshold of 0.8</div>
                 </div>
             </div>
@@ -163,19 +199,19 @@
                     images with the original image.
                 </p>
                 <div class="image-container">
-                    <img src="project2_images/taj_sharpened.jpg" alt="taj sharpened">
+                    <img src="project_2/project2_images/taj_sharpened.jpg" alt="taj sharpened">
                     <div class="project-caption">Sharpened image of the Taj Mahal with the original, blurred, and high frequency images</div>
                 </div>
                 <div class="image-container">
-                    <img src="project2_images/taj_all_alpha_values.jpg" alt="taj all alpha values">
+                    <img src="project_2/project2_images/taj_all_alpha_values.jpg" alt="taj all alpha values">
                     <div class="project-caption">Sharpened image of the Taj Mahal with various values of alpha</div>
                 </div>
                 <div class="image-container">
-                    <img src="project2_images/tower_bridge_sharpening_results.jpg" alt="tower bridge sharpening results">
+                    <img src="project_2/project2_images/tower_bridge_sharpening_results.jpg" alt="tower bridge sharpening results">
                     <div class="project-caption">Sharpened image of the Tower Bridge with the original, blurred, and high frequency images</div>
                 </div>
                 <div class="image-container">
-                    <img src="project2_images/tower_bridge_all_alpha_values.jpg" alt="tower bridge all alpha values">
+                    <img src="project_2/project2_images/tower_bridge_all_alpha_values.jpg" alt="tower bridge all alpha values">
                     <div class="project-caption">Sharpened image of the Tower Bridge with various values of alpha</div>
                 </div>
 
@@ -187,7 +223,7 @@
                     frequencies that are still present in the image.
                 </p>
                 <div class="image-container">
-                    <img src="project2_images/loki_sharpened.jpg" alt="loki sharpened">
+                    <img src="project_2/project2_images/loki_sharpened.jpg" alt="loki sharpened">
                     <div class="project-caption">Blurred image of my dog, Loki, along with the sharpened version of the blurred image, and the original image</div>
                 </div>
             </div>
@@ -202,15 +238,15 @@
                     images, blurred and high frequency images, as well as the hybrid image are also shown.
                 </p>
                 <div class="image-container">
-                    <img src="project2_images/derek_nutmeg_hybrid_image.jpg" alt="nutmeg derek hybrid">
+                    <img src="project_2/project2_images/derek_nutmeg_hybrid_image.jpg" alt="nutmeg derek hybrid">
                     <div class="project-caption">Hybrid image of the nutmeg and the derek</div>
                 </div>
                 <div class="image-container">
-                    <img src="project2_images/broccoli_tree_hybrid.jpg" alt="broccoli tree hybrid">
+                    <img src="project_2/project2_images/broccoli_tree_hybrid.jpg" alt="broccoli tree hybrid">
                     <div class="project-caption">Hybrid image of broccoli and a tree</div>
                 </div>
                 <div class="image-container">
-                    <img src="project2_images/bird_airplane_hybrid_fft.jpg" alt="bird airplane hybrid">
+                    <img src="project_2/project2_images/bird_airplane_hybrid_fft.jpg" alt="bird airplane hybrid">
                     <div class="project-caption">Hybrid image of a bird and an airplane, with the fourier transform of each image displayed below respectively</div>
                 </div>
             </div>
@@ -232,7 +268,7 @@
                     together. The apple gets multplied by the mask while the orange gets multiplied by 1 minus the mask. We then display the resulting images.
                 </p>
                 <div class="image-container">
-                    <img src="project2_images/apple_orange_recombined.jpg" alt="apple orange recombinied">
+                    <img src="project_2/project2_images/apple_orange_recombined.jpg" alt="apple orange recombinied">
                     <div class="project-caption">Recombined image of the apple and the orange, with the laplacian stacks masked shown. Laplacian stack images were normalized by subtracting the minimum value and dividing by the maximum value minus the minimum value.</div>
                 </div>
             </div>
@@ -245,15 +281,15 @@
                     The results and masks are shown below.
                 </p>
                 <div class="image-container">
-                    <img src="project2_images/twenty_percent_recombined_oraple.jpg" alt="twenty percent recombinied oraple">
+                    <img src="project_2/project2_images/twenty_percent_recombined_oraple.jpg" alt="twenty percent recombinied oraple">
                     <div class="project-caption">Recombined image of the apple and the orange, with the mask image.</div>
                 </div>
                 <div class="image-container">
-                    <img src="project2_images/cheese_moon_recombined.jpg" alt="cheese moon recombinied">
+                    <img src="project_2/project2_images/cheese_moon_recombined.jpg" alt="cheese moon recombinied">
                     <div class="project-caption">Recombined image of cheese and the moon, with the original images andmask image.</div>
                 </div>
                 <div class="image-container">
-                    <img src="project2_images/domo_popsicle_recombined.jpg" alt="domo popsicle recombinied">
+                    <img src="project_2/project2_images/domo_popsicle_recombined.jpg" alt="domo popsicle recombinied">
                     <div class="project-caption">Recombined image of the character Domo and a chocolate popsicle, with the original images and mask image.</div>
                 </div>
             </div>

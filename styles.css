@@ -448,6 +448,54 @@ b {
     margin: 0 auto 0.5rem auto;
 }
 
+/* Code styling */
+code {
+    font-family: 'Inconsolata', monospace;
+    background-color: #f4f4f4;
+    color: #1C3620;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    border: 1px solid #e0e0e0;
+}
+
+pre {
+    font-family: 'Inconsolata', monospace;
+    background-color: #f8f8f8;
+    color: #1C3620;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    overflow-x: auto;
+    line-height: 1.4;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+}
+
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+}
+
+.code-container {
+    margin: 1.5rem 0;
+}
+
+.code-title {
+    font-family: 'Inconsolata', monospace;
+    font-size: 0.85rem;
+    color: #659157;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+/* Code block with title */
+.code-container pre {
+    margin-top: 0;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .main-content {
