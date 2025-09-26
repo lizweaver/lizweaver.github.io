@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project 2: Fun with Filters and Frequencies</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <header>
+        <a href="../index.html" style="text-decoration: none;"><h1 class="site-title">Elizabeth Weaver</h1></a>
+        <nav>
+            <a href="../index.html" class="nav-gray">Home</a>
+            <a href="../projects.html" class="nav-dark">Projects</a>
+            <a href="../blog.html" class="nav-green">Blog</a>
+        </nav>
+    </header>
+
+    <div class="ascii-art"></div>
+
+    <div class="breadcrumb">
+        <a href="../projects.html">Projects</a> / <a href="index.html">CS180</a> / Project 2: Fun with Filters and Frequencies
+    </div>
+
+    <main class="main-content projects with-breadcrumb">
+        <div class="profile-section">
+            <div class="project-header">
+                <h1>Project 2: Fun with Filters and Frequencies</h1>
+                <p>
+                    The goal of this project is to gain a better understanding of filters and frequencies in images, 
+                    and how we can use these to process images in unique and interesting ways.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Overview</h2>
+                <p>
+                    In this project, we explore filters and frequencies in images. We first implement convolutions and 
+                    create simple edge detectors with finite difference filters. We also explore image sharpening, hybrid 
+                    images, and laplacian image pyramids. Using these tools we create fun hybrid images and multiresolution 
+                    blended images!
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.1: Convolutions from Scratch</h2>
+                <p>
+                    In this part, we implement convolutions from scratch using nested for loops. We first create a simple function 
+                    that uses four nested for loops to perform a convolution. We then create a function that uses two nested for loops 
+                    with numpy operations to perform a convolution. For both of these implementations, we pad the image with zeros based 
+                    on the size of the kernel. We then compare the results of these two functions and scipy.signal.convolve2D for a 
+                    simple grayscale image of me and a box filter.
+                </p>
+                <p>
+                    All of these methods used 0 padding for the image, thus treating the edges of the image the same. I double checked 
+                    that all of these methods gave the same results by running np.allclose on the results of the three functions.
+                </p>
+                <div class="image-container">
+                    <img src="project2_images/box_filter_comparison_image_of_me.jpg" alt="me box comparison">
+                    <div class="project-caption">Comparison of the three functions for a 9x9 box filter on a grayscale image of me</div>
+                </div>
+                <p>
+                    The results of the convolutions are shown above. As we can see, the results of the three functions are the same. However, 
+                    these functions are not the same speed. The four nested for loop function is the slowest, followed by the two nested for loop function, 
+                    and then the scipy.signal.convolve2D function. Four loop time: 0.399 seconds, Two loop time: 0.169 seconds, SciPy time: 0.003 seconds.
+                </p>
+
+                <p>
+                    We also convolve the image of me with the finite difference filters Dx and Dy. Again, the results of the three functions are the same. 
+                    These images are shown below.
+                </p>
+                <div class="image-container">
+                    <img src="project2_images/Dx_comparison_image_of_me.jpg" alt="me Dx comparison">
+                    <div class="project-caption">Partial derivatives in the x direction of the image of me</div>
+                </div>
+                <div class="image-container">
+                    <img src="project2_images/Dy_comparison_image_of_me.jpg" alt="me Dy comparison">
+                    <div class="project-caption">Partial derivatives in the y direction of the image of me</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.2: Finite Difference Operator</h2>
+                <p>
+                    First, we show the partial derivatives in x and y directions of the cameraman image. Using these partial derivatives, we can compute the 
+                    gradient magnitude image. We then use the gradient magnitude to create a simple edge detector by binarizing the gradient magnitude image 
+                    with a constant threshold. With this method, it is difficult to trade off between noise and edge detection. There is a lot of grain in 
+                    these images. 
+                </p>
+                <p>
+                    The threshold I chose as the best trade off was 0.325. With this threshold, most of the noise at the bottom of the image is removed, but 
+                    we can still see most of the back leg of the tripod and the smaller buildings at the back. I show the results of all of the best different 
+                    thresholds I tested below, including 0.325.
+                </p>
+                <div class="image-container">  
+                    <img src="project2_images/cameraman_gradient_magnitude.jpg" alt="cameraman gradient magnitude">
+                    <div class="project-caption">Partial derivatives and gradient magnitude of the cameraman image</div>
+                </div>
+                <div class="image-container"> 
+                    <img src="project2_images/cameraman_edges.jpg" alt="cameraman edge detector">
+                    <div class="project-caption">Edge detection using gradient magnitude with various thresholds. 0.325 looks best.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.3: Derivative of Gaussian (DoG) Filter</h2>
+                <p>
+                    Next, we try to improve this edge detector by first convolving the image with a Gaussian filter to blur the image, and then computing the 
+                    gradient magnitude of the blurred image with the same method as above. We then use the gradient magnitude of the blurred image to create a 
+                    simple edge detector by binarizing the gradient magnitude image with a constant threshold again. We use a Gaussian filter with a sigma of 2
+                    and a kernel size of 13. I choose a threshold of 0.08 to be the best under this method, as we don't lose the mouth of the cameraman or the 
+                    top of the building in the back. There are still one or two grains left, but it is a much cleaner image. We compare the results of the edge 
+                    detector with different thresholds below, including 0.08.
+                </p>
+                <div class="image-container">
+                    <img src="project2_images/cameraman_smoothed_dx_dy.jpg" alt="cameraman smoothed dx dy">
+                    <div class="project-caption">Partial derivatives in x and y directions after smoothing with a Gaussian filter</div>
+                </div>
+                <div class="image-container">
+                    <img src="project2_images/cameraman_edges_smoothed.jpg" alt="cameraman edge detector smoothed">
+                    <div class="project-caption">Edge detection using smoothed image and gradient magnitude with various thresholds. 0.08 looks best.</div>
+                </div>
+                <p>
+                    Now we combine the Gaussian and finite difference filters together to get one kernel to convolve with the image. The new kernels are created 
+                    by convolving the Gaussian and finite difference filters together. We use a kernel size of 13 and a sigma of 2. The results of the partial 
+                    derivatives as well as the edge detector are shown below. We can see that the edge detector gets the same results as when we convolved the 
+                    image with the Gaussian and finite difference filters one at a time. The best threshold is still 0.08.
+                </p>            
+                <div class="image-container">
+                    <img src="project2_images/cameraman_dx_dy_gaussian_dog_filter.jpg" alt="cameraman dx dy gaussian dog filter">
+                    <div class="project-caption">Filters created by convolving the Gaussian and finite difference filters together</div>
+                </div>
+                <div class="image-container">
+                    <img src="project2_images/cameraman_gradient_magnitude_gaussian_dog_filter.jpg" alt="cameraman gradient magnitude gaussian dog filter">
+                    <div class="project-caption">Partial derivatives and gradient magnitude with Gaussian DoG filter</div>
+                </div>
+                <div class="image-container">
+                    <img src="project2_images/cameraman_edges_smoothed_gradient_gaussian.jpg" alt="cameraman edge detector with gradient of gaussian">
+                    <div class="project-caption">Edge detection using Gaussian DoG filter with various thresholds. 0.08 looks best.</div>
+                </div>
+                <p>
+                    The results of the edge detector with the DoG filter and the original blurred method come out to be the same. I display a comparison image 
+                    below of the detected edges with both methods (both with the same threshold of 0.8). 
+                </p>
+                <div class="image-container">
+                    <img src="project2_images/cameraman_gradient_magnitude_comparison.jpg" alt="cameraman gradient magnitude comparison">
+                    <div class="project-caption">Comparison of the binarized gradient magnitude of the original blurred method and the Gaussian DoG filter method with the same threshold of 0.8</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2.1: Image Sharpening</h2>
+                <p>
+                    In this part, we explore image sharpening. We first create a function that sharpens an image by convolving it with a unsharp mask filter.
+                    This filter is essentially adding the high frequency back to the original image. We can do this by blurring the image with a gaussian kernel 
+                    and then subtracting the blurred image from the original image to get the high frequency image. We then add the high frequency image back to 
+                    the original image with some constant value alpha to get the sharpened image. In practice, we can calculate just one filter, the unsharp mask 
+                    filter, by subtracting alpha times the gaussian kernel from (1 + alpha) times the unit impulse. Our gaussian kernel is 7x7 with a sigma of 1. 
+                    We then convolve the image with this filter with various values of alpha to get the sharpened images. We then compare the results of these 
+                    images with the original image.
+                </p>
+                <div class="image-container">
+                    <img src="project2_images/taj_sharpened.jpg" alt="taj sharpened">
+                    <div class="project-caption">Sharpened image of the Taj Mahal with the original, blurred, and high frequency images</div>
+                </div>
+                <div class="image-container">
+                    <img src="project2_images/taj_all_alpha_values.jpg" alt="taj all alpha values">
+                    <div class="project-caption">Sharpened image of the Taj Mahal with various values of alpha</div>
+                </div>
+                <div class="image-container">
+                    <img src="project2_images/tower_bridge_sharpening_results.jpg" alt="tower bridge sharpening results">
+                    <div class="project-caption">Sharpened image of the Tower Bridge with the original, blurred, and high frequency images</div>
+                </div>
+                <div class="image-container">
+                    <img src="project2_images/tower_bridge_all_alpha_values.jpg" alt="tower bridge all alpha values">
+                    <div class="project-caption">Sharpened image of the Tower Bridge with various values of alpha</div>
+                </div>
+
+                <p>
+                    Now, we try the same thing on a blurry image. I blurred an image of my dog with a gaussian kernel 13x13 with a sigma of 2, then 
+                    sharpened that image. The results are shown below. As you can see, the imaage does look more sharp, but there are some details 
+                    in the original image that were lost when we blurred it that couldn't be recovered by the sharpening process. This is because 
+                    the blurring removes the highest frequency components of the image, and the sharpening process can only add back the high 
+                    frequencies that are still present in the image.
+                </p>
+                <div class="image-container">
+                    <img src="project2_images/loki_sharpened.jpg" alt="loki sharpened">
+                    <div class="project-caption">Blurred image of my dog, Loki, along with the sharpened version of the blurred image, and the original image</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2.2: Hybrid Images</h2>
+                <p>
+                    In this part, we create hybrid images. We first have to align the two images by selecting two points in each image for alignment. Then, we 
+                    convolve the two images with their respective gaussian kernels to get two lower frequency images. We subtract one image from its original 
+                    to get a high frequency image. We then add the low and high frequency images together to get the final hybrid image. For each example, 
+                    the original images and the hybrid image are shown. For the example with the bird and the airplane, the fourier transform of the original 
+                    images, blurred and high frequency images, as well as the hybrid image are also shown.
+                </p>
+                <div class="image-container">
+                    <img src="project2_images/derek_nutmeg_hybrid_image.jpg" alt="nutmeg derek hybrid">
+                    <div class="project-caption">Hybrid image of the nutmeg and the derek</div>
+                </div>
+                <div class="image-container">
+                    <img src="project2_images/broccoli_tree_hybrid.jpg" alt="broccoli tree hybrid">
+                    <div class="project-caption">Hybrid image of broccoli and a tree</div>
+                </div>
+                <div class="image-container">
+                    <img src="project2_images/bird_airplane_hybrid_fft.jpg" alt="bird airplane hybrid">
+                    <div class="project-caption">Hybrid image of a bird and an airplane, with the fourier transform of each image displayed below respectively</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2.3: Gaussian and Laplacian Stacks</h2>
+                <p>
+                    In this part, we create Gaussian and Laplacian image stacks. We first create a function to create a gaussian stack of an image. This is 
+                    achieved by convolving the image with a gaussian kernel and then increasing the size of the kernel by some factor to get the next layer. 
+                    This results in a list of images, each with the same size, but each more blurry than the next. We then create a function to create a 
+                    Laplacian stack of an image. This function calls the former function to create a gaussian stack, then subtracts the neighbors in the 
+                    gaussian stack from each other to get individual frequency bands, which is the the Laplacian stack. The bottom layer of the Laplacian 
+                    stack is the same as the lowest frequency layer of the gaussian stack.
+                </p>
+                <p>
+                    We create a laplacian stack for each reference image. We also create a gaussian stack for the mask image that we will use to blend the 
+                    two images. We recreate the image from Figure 3.42 in Szeliski's book draft, Computer Vision: Algorithms and Applications. This is 
+                    done by multiplying layers 0, 2, 4 of the laplacian stack with the respective layers of the mask gaussian stack and then adding them 
+                    together. The apple gets multplied by the mask while the orange gets multiplied by 1 minus the mask. We then display the resulting images.
+                </p>
+                <div class="image-container">
+                    <img src="project2_images/apple_orange_recombined.jpg" alt="apple orange recombinied">
+                    <div class="project-caption">Recombined image of the apple and the orange, with the laplacian stacks masked shown. Laplacian stack images were normalized by subtracting the minimum value and dividing by the maximum value minus the minimum value.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2.4: Multiresolution Blending</h2>
+                <p>
+                    In this part, we blend two images together using the same multiresolution approach as described in the previous part. In this part, 
+                    I made the mask images of interesting shapes, or in the case of the orange and apple, I made the transition in the center of the image linear. 
+                    The results and masks are shown below.
+                </p>
+                <div class="image-container">
+                    <img src="project2_images/twenty_percent_recombined_oraple.jpg" alt="twenty percent recombinied oraple">
+                    <div class="project-caption">Recombined image of the apple and the orange, with the mask image.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project2_images/cheese_moon_recombined.jpg" alt="cheese moon recombinied">
+                    <div class="project-caption">Recombined image of cheese and the moon, with the original images andmask image.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project2_images/domo_popsicle_recombined.jpg" alt="domo popsicle recombinied">
+                    <div class="project-caption">Recombined image of the character Domo and a chocolate popsicle, with the original images and mask image.</div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+    <script src="../ascii-loader.js"></script>
+</body>
+</html>
+
