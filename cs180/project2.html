@@ -62,37 +62,37 @@
                 <div class="code-container">
                     <div class="code-title">Four nested loops implementation</div>
                     <pre><code>def conv_with_four_loops(image, kernel):
-                        kernel_h, kernel_w = kernel.shape
-                        padding_h, padding_w = kernel_h // 2, kernel_w // 2
-                        image_padded = np.pad(image, ((padding_h, padding_h), (padding_w, padding_w)), mode='constant')
-                        kernel_flipped = np.flip(kernel, axis=(0, 1))
-                        result_image = np.zeros_like(image)
-                    
-                        for i in range(image.shape[0]):
-                            for j in range(image.shape[1]):
-                                for k in range(kernel_h):
-                                    for l in range(kernel_w):
-                                        result_image[i, j] += image_padded[i + k, j + l] * kernel_flipped[k, l]
-                    
-                        return result_image</code></pre>
+    kernel_h, kernel_w = kernel.shape
+    padding_h, padding_w = kernel_h // 2, kernel_w // 2
+    image_padded = np.pad(image, ((padding_h, padding_h), (padding_w, padding_w)), mode='constant')
+    kernel_flipped = np.flip(kernel, axis=(0, 1))
+    result_image = np.zeros_like(image)
+
+    for i in range(image.shape[0]):
+        for j in range(image.shape[1]):
+            for k in range(kernel_h):
+                for l in range(kernel_w):
+                    result_image[i, j] += image_padded[i + k, j + l] * kernel_flipped[k, l]
+
+    return result_image</code></pre>
                 </div>
                 <div class="code-container">
                     <div class="code-title">Two nested loops implementation</div>
                     <pre><code>def conv_with_two_loops(image, kernel):
-                        kernel_h, kernel_w = kernel.shape
-                        padding_h, padding_w = kernel_h // 2, kernel_w // 2
-                        image_padded = np.pad(image, ((padding_h, padding_h), (padding_w, padding_w)), mode='constant')
-                        kernel_flipped = np.flip(kernel, axis=(0, 1))
-                        result_image = np.zeros_like(image)
-                    
-                        for i in range(image.shape[0]):
-                            for j in range(image.shape[1]):
-                                result_image[i, j] = np.dot(
-                                    image_padded[i:i+kernel_h, j:j+kernel_w].ravel(),
-                                    kernel_flipped.ravel()
-                                )
-                    
-                        return result_image</code></pre>
+    kernel_h, kernel_w = kernel.shape
+    padding_h, padding_w = kernel_h // 2, kernel_w // 2
+    image_padded = np.pad(image, ((padding_h, padding_h), (padding_w, padding_w)), mode='constant')
+    kernel_flipped = np.flip(kernel, axis=(0, 1))
+    result_image = np.zeros_like(image)
+
+    for i in range(image.shape[0]):
+        for j in range(image.shape[1]):
+            result_image[i, j] = np.dot(
+                image_padded[i:i+kernel_h, j:j+kernel_w].ravel(),
+                kernel_flipped.ravel()
+            )
+
+    return result_image</code></pre>
                 </div>
                 <div class="image-container">
                     <img src="project_2/project2_images/box_filter_comparison_image_of_me.jpg" alt="me box comparison">
