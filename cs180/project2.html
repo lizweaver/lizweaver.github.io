@@ -148,8 +148,9 @@
                     gradient magnitude of the blurred image with the same method as above. We then use the gradient magnitude of the blurred image to create a 
                     simple edge detector by binarizing the gradient magnitude image with a constant threshold again. We use a Gaussian filter with a sigma of 2
                     and a kernel size of 13. I choose a threshold of 0.08 to be the best under this method, as we don't lose the mouth of the cameraman or the 
-                    top of the building in the back. There are still one or two grains left, but it is a much cleaner image. We compare the results of the edge 
-                    detector with different thresholds below, including 0.08.
+                    top of the building in the back. There are still one or two grains left, but it is a much cleaner image. Overall, the results for this method 
+                    are much cleaner than just the finite difference method. Most of the noise is removed already in the gradient magnitude image, because of the 
+                    blurring. We compare different results of the new edge detector with different thresholds below, including 0.08.
                 </p>
                 <div class="image-container">
                     <img src="project_2/project2_images/cameraman_smoothed_dx_dy.jpg" alt="cameraman smoothed dx dy">
@@ -199,7 +200,7 @@
                     images with the original image.
                 </p>
                 <div class="image-container">
-                    <img src="project_2/project2_images/taj_sharpened.jpg" alt="taj sharpened">
+                    <img src="project_2/project2_images/taj_sharpening_results.jpg" alt="taj sharpened">
                     <div class="project-caption">Sharpened image of the Taj Mahal with the original, blurred, and high frequency images</div>
                 </div>
                 <div class="image-container">
@@ -223,7 +224,7 @@
                     frequencies that are still present in the image.
                 </p>
                 <div class="image-container">
-                    <img src="project_2/project2_images/loki_sharpened.jpg" alt="loki sharpened">
+                    <img src="project_2/project2_images/loki_sharpening_results.jpg" alt="loki sharpened">
                     <div class="project-caption">Blurred image of my dog, Loki, along with the sharpened version of the blurred image, and the original image</div>
                 </div>
             </div>
@@ -239,15 +240,15 @@
                 </p>
                 <div class="image-container">
                     <img src="project_2/project2_images/derek_nutmeg_hybrid_image.jpg" alt="nutmeg derek hybrid">
-                    <div class="project-caption">Hybrid image of the nutmeg and the derek</div>
+                    <div class="project-caption">Hybrid image of the nutmeg and the derek, with sigma = 9 for nutmeg and sigma = 7 for derek</div>
                 </div>
                 <div class="image-container">
                     <img src="project_2/project2_images/broccoli_tree_hybrid.jpg" alt="broccoli tree hybrid">
-                    <div class="project-caption">Hybrid image of broccoli and a tree</div>
+                    <div class="project-caption">Hybrid image of broccoli and a tree, with sigma = 2 for both images</div>
                 </div>
                 <div class="image-container">
                     <img src="project_2/project2_images/bird_airplane_hybrid_fft.jpg" alt="bird airplane hybrid">
-                    <div class="project-caption">Hybrid image of a bird and an airplane, with the fourier transform of each image displayed below respectively</div>
+                    <div class="project-caption">Hybrid image of a bird and an airplane, with the fourier transform of each image displayed below respectively. Sigmas are listed in the titles of the plots.</div>
                 </div>
             </div>
 
@@ -263,9 +264,10 @@
                 </p>
                 <p>
                     We create a laplacian stack for each reference image. We also create a gaussian stack for the mask image that we will use to blend the 
-                    two images. We recreate the image from Figure 3.42 in Szeliski's book draft, Computer Vision: Algorithms and Applications. This is 
+                    two images. We use a gaussian sigma starting at 1 doubling with each layer for each stack. We recalculate the gaussian kernel size to 
+                    be 6*sigma + 1.We recreate the image from Figure 3.42 in Szeliski's book draft, Computer Vision: Algorithms and Applications. This is 
                     done by multiplying layers 0, 2, 4 of the laplacian stack with the respective layers of the mask gaussian stack and then adding them 
-                    together. The apple gets multplied by the mask while the orange gets multiplied by 1 minus the mask. We then display the resulting images.
+                    together. The apple gets multplied by the mask while the orange gets multiplied by 1 minus the mask.  We then display the resulting images.
                 </p>
                 <div class="image-container">
                     <img src="project_2/project2_images/apple_orange_recombined.jpg" alt="apple orange recombinied">
