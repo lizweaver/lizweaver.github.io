@@ -279,7 +279,7 @@
                     two images. We use a gaussian sigma starting at 1 doubling with each layer for each stack. We recalculate the gaussian kernel size at each layer to 
                     be 6*sigma + 1. We recreate the image from Figure 3.42 in Szeliski's book draft, Computer Vision: Algorithms and Applications. This is 
                     done by multiplying layers 0, 2, 4 of the laplacian stack with the respective layers of the mask gaussian stack and then adding them 
-                    together. The apple gets multplied by the mask while the orange gets multiplied by 1 minus the mask.  We then display the resulting images.
+                    together. The apple layers get multplied by the mask layers while the orange layers get multiplied by 1 minus the mask layers. We then display the resulting images.
                 </p>
                 <div class="image-container">
                     <img src="project_2/project2_images/apple_orange_recombined.jpg" alt="apple orange recombinied">
@@ -304,7 +304,7 @@
                 </div>
                 <div class="image-container">
                     <img src="project_2/project2_images/moon_cheese_recombined_laplacian_stack.jpg" alt="moon cheese recombinied laplacian stack">
-                    <div class="project-caption">Recombined image of cheese and the moon, with the laplacian stacks masked shown. Laplacian stack images were normalized by subtracting the minimum value and dividing by the maximum value minus the minimum value.</div>
+                    <div class="project-caption">Recombined image of cheese and the moon, with the laplacian stacks masked shown. Laplacian stack images were normalized by subtracting the minimum value and dividing by the maximum value minus the minimum value. Layers 0, 2, 4, are shown here, with the same process as described for the oraple example.</div>
                 </div>
                 <div class="image-container">
                     <img src="project_2/project2_images/domo_popsicle_recombined.jpg" alt="domo popsicle recombinied">
