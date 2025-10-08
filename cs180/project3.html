@@ -77,7 +77,7 @@
                 
                 <div class="image-container">
                     <img src="project3/images/left_vs_right_boat_original_images.jpg" alt="left vs right boat original images">
-                    <div class="project-caption">Two images of boats docked at the San Francisco marina, with approximately fixed center of projection and significant overlap.</div>
+                    <div class="project-caption">Two images of the Anchor House taken from next to Li Ka Shing, with approximately fixed center of projection and significant overlap.</div>
                 </div>
                 <div class="image-container">
                     <img src="project3/images/left_vs_right_glade_original_images.jpg" alt="right vs left glade original images">
@@ -85,7 +85,7 @@
                 </div>
                 <div class="image-container">
                     <img src="project3/images/left_vs_right_mining_original_images.jpg" alt="right vs left mining original images">
-                    <div class="project-caption">Two images with the Hearts Mining Circle peeking through, taken from next to Cory, with fixed center of projection and significant overlap.</div>
+                    <div class="project-caption">Two images with the Hearst Mining Circle peeking through, taken from next to Cory, with fixed center of projection and significant overlap.</div>
                 </div>
                 <div class="image-container">
                     <img src="project3/images/images_from_grimes.jpg" alt="images from grimes">
@@ -199,7 +199,7 @@
 
                 <div class="image-container">
                     <img src="project3/images/left_vs_right_boat_correspondences.jpg" alt="left vs right boat correspondences">
-                    <div class="project-caption">Point correspondences for the left vs right boat images.</div>
+                    <div class="project-caption">Point correspondences for the left vs right anchor house images, 51 points were selected.</div>
                 </div>
                 
                 <p><strong>Left vs Right Boat - Homography Matrix:</strong></p>
@@ -211,7 +211,7 @@
 
                 <div class="image-container">
                     <img src="project3/images/left_vs_right_glade_correspondences.jpg" alt="left vs right glade correspondences">
-                    <div class="project-caption">Point correspondences for the left vs right glade images.</div>
+                    <div class="project-caption">Point correspondences for the left vs right glade images, 41 points were selected.</div>
                 </div>
                 
                 <p><strong>Left vs Right Glade - Homography Matrix:</strong></p>
@@ -223,7 +223,7 @@
                 
                 <div class="image-container">
                     <img src="project3/images/left_vs_right_mining_correspondences.jpg" alt="left vs right mining correspondences">
-                    <div class="project-caption">Point correspondences for the left vs right mining circle images.</div>
+                    <div class="project-caption">Point correspondences for the left vs right mining circle images, 47 points were selected.</div>
                 </div>
                 
                 <p><strong>Left vs Right Mining - Homography Matrix:</strong></p>
@@ -363,12 +363,13 @@ warped_image[out_y, out_x] = (1 - x_change) * (1 - y_change) * im[y_lower, x_low
                     However, the nearest neighbor interpolation is much faster than the bilinear interpolation. Timing the two functions on 
                     the Keith Haring poster: Bilinear time = 4.34 seconds, Nearest Neighbor time = 2.17 seconds. 
                     In my opinion, the bilinear interpolation is worth the slightly longer runtime because it results in a much smoother image. 
-                    We will use bilinear interpolation for the rest of the project.
+                    We will use bilinear interpolation for the rest of the project. For this rectification, I made a 400x600 rectangle to serve 
+                    as the image_2 points for the homography calculation.
                 </p>
                 
                 <div class="image-container">
                     <img src="project3/images/tile_bilinear_rectification_full_workflow.jpg" alt="tile bilinear rectification full workflow">
-                    <div class="project-caption">Full workflow of rectification of a tile from Portugal using bilinear interpolation.</div>
+                    <div class="project-caption">Full workflow of rectification of a tile from Portugal using bilinear interpolation. A 400x400 square was used as the image_2 points for the homography calculation.</div>
                 </div>
 
                 <div class="image-container">
@@ -524,6 +525,10 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                     <div class="project-caption">Blended mosaic of the glade images using weighted averaging and centered radial falloff.</div>
                 </div>
                 <div class="image-container">
+                    <img src="project3/images/glade_overlap.png" alt="glade overlap">
+                    <div class="project-caption">Simple overlay of the glade images, without any blending.</div>
+                </div>
+                <div class="image-container">
                     <img src="project3/images/glade_all_blending_types.jpg" alt="glade blended">
                     <div class="project-caption">Blended mosaic of the glade images using weighted averaging and all blending types.</div>
                 </div>
@@ -533,7 +538,7 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                 </div>
                 <div class="image-container">
                     <img src="project3/images/glade_centered_alphas.png" alt="glade centered alphas">
-                    <div class="project-caption">Centered radial alphas for the glade images.</div>
+                    <div class="project-caption">Centered radial alphas for the glade images. Here you can see the points that are black in the original image, without it affecting the rest of the alpha values.</div>
                 </div>
 
                 <p>
@@ -544,7 +549,7 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                     of the image areas where there is overlap look good though, such as the Campanile in the center of the image. 
                     The scipy distance-based alphas do not behave as expected since there are black points in the image itself, as 
                     you can see in the alpha mask images above. I also show the centered radial alphas, which perform better and 
-                    remove the edge artifacts.
+                    remove the edge artifacts well.
                 </p>
                 
                 <div class="image-container">
@@ -552,31 +557,41 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                     <div class="project-caption">Blended mosaic of the mining images using weighted averaging and centered radial falloff.</div>
                 </div>
                 <div class="image-container">
+                    <img src="project3/images/mining_overlap.png" alt="mining overlap">
+                    <div class="project-caption">Simple overlay of the mining images, without any blending.</div>
+                </div>
+                <div class="image-container">
                     <img src="project3/images/mining_all_blending_types.jpg" alt="mining blended">
                     <div class="project-caption">Blended mosaic of the mining images using weighted averaging and all blending types.</div>
                 </div>
 
                 <p>
-                    This image is remarkably good, with no edge artifacts and no ghosting. The blending is done pretty much 
-                    perfectly, with no harsh transitions between the images. This holds for all the blending types, which leads me 
-                    to believe that my center of projection is pretty good, and the points I selected were good as well. 
+                    This image is remarkably good, with no edge artifacts and no ghosting besides a bit of blurring on the building in the far 
+                    background. The blending looks great, with no harsh transitions between the images. This holds for all the blending types, 
+                    which leads me to believe that my center of projection is pretty good, and the points I selected were good as well. 
                     There is a tiny bit of ghosting on the food vans in the center of the image, but it is not very noticeable.
                 </p>
 
                 <div class="image-container">
-                    <img src="project3/images/boat_blending_workflow.jpg" alt="boat blending workflow">
-                    <div class="project-caption">Blended mosaic of the boat images using weighted averaging and centered radial falloff.</div>
-                </div>                
+                    <img src="project3/images/anchor_blended.jpg" alt="anchor house blended">
+                    <div class="project-caption">Blended mosaic of the anchor house images using weighted averaging and centered radial falloff.</div>
+                </div>
                 <div class="image-container">
-                    <img src="project3/images/boat_all_blending_types.jpg" alt="boat blending types">
-                    <div class="project-caption">Blended mosaic of the boat images using weighted averaging and all blending types.</div>
+                    <img src="project3/images/anchor_overlap.png" alt="anchor house overlap">
+                    <div class="project-caption">Simple overlay of the anchor house images, without any blending.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project3/images/anchor_all_blending_types.jpg" alt="anchor house blending types">
+                    <div class="project-caption">Blended mosaic of the anchor house images using weighted averaging and all blending types.</div>
                 </div>
                 
                 <p>
-                    This image is by far the worst of the three. The blending is not good, and we can still see some edge artifacts. The 
-                    edge artifacts are less pronounced when using linear falloff than the 50/50 blending, but the center of the image is 
-                    quite blurry with a lot of ghosting. These images I took much closer to the subjects, and I did not have a flat surface 
-                    to put the phone on, so the images are not perfectly still. This is probably the reason why the blending is not good.
+                    This blending is also great, with no edge artifacts and no ghosting besides people moving through the scene. As you can see, 
+                    the edge artifacts shown in the simple overlay are removed by the blending. What is interesting about the different blending 
+                    types here is how each version of blending deals with the person waiting for the crosswalk in this image. The 50/50 blending 
+                    makes the person a ghost, while the linear falloff shows the person, and the laplacian of the linear falloff shows the person. 
+                    The centered blending also shows the person, but they are slightly blurry. The distance transform blending gets rid of the 
+                    person completely.
                 </p>
             </div>
 
