@@ -202,11 +202,11 @@
                     <div class="project-caption">Point correspondences for the left vs right anchor house images, 51 points were selected.</div>
                 </div>
                 
-                <p><strong>Left vs Right Boat - Homography Matrix:</strong></p>
+                <p><strong>Left vs Right Anchor House - Homography Matrix:</strong></p>
                 $$H_1 = \begin{bmatrix}
-                1.07975193e+00 & -1.15522883e-01 & -6.59559675e+02 \\
-                8.11001034e-02 & 9.04787032e-01 & -3.69266634e+01 \\
-                3.39702505e-05 & -4.03753665e-05 & 1.00000000e+00
+                1.6102512e+00 & -1.98987719e-02 & -2.51020236e+03 \\
+                2.44039171e-01 & 1.34205263e+00 & -6.25556354e+02 \\
+                1.11209257e-04 & -9.18660673e-06 & 1.00000000e+00
                 \end{bmatrix}$$
 
                 <div class="image-container">
@@ -344,7 +344,12 @@ warped_image[out_y, out_x] = (1 - x_change) * (1 - y_change) * im[y_lower, x_low
                 <p>
                     To test the homography and warping implementation, I performed rectification on images containing 
                     rectangular objects. By defining correspondences between a tilted rectangle and a perfect square, 
-                    I can verify that the warping correctly transforms perspective distortions.
+                    I can verify that the warping correctly transforms perspective distortions. First, we get the 
+                    correspondence points for the tilted rectangle from our correspondence tool. We crop the image 
+                    to a small padded distance around the maximum width and height of the selected points. The second 
+                    set of points can just be set to the four corners of a random rectangle of your choosing. Then, we 
+                    calculate the homography matrix using these two sets of points and warp the image using our different 
+                    interpolation methods.
                 </p>
                 
                 <div class="image-container">
@@ -382,15 +387,15 @@ warped_image[out_y, out_x] = (1 - x_change) * (1 - y_change) * im[y_lower, x_low
             <div class="project-section">
                 <h2>Part A.4: Blend Images into a Mosaic</h2>
                 <p>
-                    With the ability to warp images, I can now create seamless mosaics by registering and blending multiple images. 
+                    With the ability to warp images, I can now create seamless mosaics by rectifying and blending multiple images. 
                     Instead of simple overwriting which creates harsh edge artifacts, I use weighted averaging and feathering techniques.
                 </p>
                 <p>
                     My approach involves picking one image as the reference image and warping the other images onto that 
-                    reference image as the common projection by calculating the homography matrix between the other images 
+                    reference image as the common projection plane by calculating the homography matrix between the other images 
                     and the reference image. We then warp the other images onto the reference image projection plane using 
-                    the inverse homography matrix and then blend them using alpha masks. The alpha values are determined 
-                    by the method of blending used. 
+                    the warp functions from earlier (all results below use bilinear interpolation) and then blend them using alpha masks. 
+                    The alpha mask's values are determined by the method of blending used. 
                 </p>
                 
                 <h3>Alpha Masks and Weighted Blending</h3>
@@ -496,6 +501,52 @@ alpha = np.clip(alpha, 0, 1) * mask</code></pre>
                     approach works reliably regardless of image content and creates natural-looking blends.
                 </p>
                 
+                <h4>5. Laplacian Stack Blending</h4>
+                <p>
+                    For the most sophisticated blending, I implemented <strong>Laplacian stack blending</strong>, which 
+                    performs frequency-domain blending to handle different spatial frequencies optimally. This technique, 
+                    inspired by the classic Burt and Adelson paper, creates seamless blends by separating images into 
+                    different frequency bands.
+                </p>
+                
+                <div class="code-container">
+                    <div class="code-title">Laplacian stack blending concept</div>
+                    <pre><code># 1. Create Gaussian stacks for both images and alpha mask
+# 2. Create Laplacian stacks by taking differences between Gaussian levels
+# 3. Blend each Laplacian level using the corresponding Gaussian alpha level
+# 4. Reconstruct the final image by summing all blended Laplacian levels</code></pre>
+                </div>
+                
+                <p>
+                    The key insight is that different spatial frequencies should be blended at different scales. 
+                    High-frequency details (fine textures, edges) are blended using sharp transitions, while 
+                    low-frequency content (colors, gradual changes) uses smooth transitions.
+                </p>
+                
+                <h5>Laplacian Stack Construction:</h5>
+                <ol>
+                    <li><strong>Gaussian Stack:</strong> Create multiple levels of increasingly blurred images</li>
+                    <li><strong>Laplacian Stack:</strong> Subtract consecutive Gaussian levels to isolate frequency bands</li>
+                    <li><strong>Alpha Gaussian Stack:</strong> Apply same Gaussian blurring to the alpha mask</li>
+                </ol>
+                
+                <div class="code-container">
+                    <div class="code-title">Laplacian blending process</div>
+                    <pre><code># For each frequency level i:
+# blended_laplacian[i] = laplacian_img1[i] * gaussian_alpha[i] + 
+#                        laplacian_img2[i] * (1 - gaussian_alpha[i])
+# 
+# Final result = sum of all blended_laplacian levels + lowest_gaussian_level</code></pre>
+                </div>
+                
+                <p>
+                    This approach eliminates ghosting and seam artifacts more effectively than some of the other blending methods 
+                    because it handles the transition of different frequency components separately. For all references to 
+                    laplacian blending in the mosaic results below, I use <strong>linear alpha masks</strong> as the basis 
+                    for the Laplacian blending, since linear falloff tends to deal with the edges of the images well. All 
+                    laplacian stacks used below have 3 levels.
+                </p>
+                
                 <h3>Weighted Averaging Process</h3>
                 <p>
                     All blending methods use the same weighted averaging formula:
@@ -525,7 +576,7 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                     <div class="project-caption">Blended mosaic of the glade images using weighted averaging and centered radial falloff.</div>
                 </div>
                 <div class="image-container">
-                    <img src="project3/images/glade_overlap.png" alt="glade overlap">
+                    <img src="project3/images/glade_overlayed.png" alt="glade overlayed">
                     <div class="project-caption">Simple overlay of the glade images, without any blending.</div>
                 </div>
                 <div class="image-container">
@@ -557,7 +608,7 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                     <div class="project-caption">Blended mosaic of the mining images using weighted averaging and centered radial falloff.</div>
                 </div>
                 <div class="image-container">
-                    <img src="project3/images/mining_overlap.png" alt="mining overlap">
+                    <img src="project3/images/mining_overlayed.png" alt="mining overlayed">
                     <div class="project-caption">Simple overlay of the mining images, without any blending.</div>
                 </div>
                 <div class="image-container">
@@ -577,7 +628,7 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                     <div class="project-caption">Blended mosaic of the anchor house images using weighted averaging and centered radial falloff.</div>
                 </div>
                 <div class="image-container">
-                    <img src="project3/images/anchor_overlap.png" alt="anchor house overlap">
+                    <img src="project3/images/anchor_overlayed.png" alt="anchor house overlayed">
                     <div class="project-caption">Simple overlay of the anchor house images, without any blending.</div>
                 </div>
                 <div class="image-container">
