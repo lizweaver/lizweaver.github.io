@@ -527,13 +527,24 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                     <img src="project3/images/glade_all_blending_types.jpg" alt="glade blended">
                     <div class="project-caption">Blended mosaic of the glade images using weighted averaging and all blending types.</div>
                 </div>
+                <div class="image-container">
+                    <img src="project3/images/glade_distance_alphas.png" alt="glade distance alphas">
+                    <div class="project-caption">Scipy distance-based alphas for the glade images. Since there are black points in the image itself, the alphas do not behave as expected.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project3/images/glade_centered_alphas.png" alt="glade centered alphas">
+                    <div class="project-caption">Centered radial alphas for the glade images.</div>
+                </div>
 
                 <p>
                     Versus the 50/50 blending, we can see that the centered radial falloff and the linear falloff look much better, 
                     without that harsh transition between the images in the top right corner, successfully removing the edge 
                     artifacts. We can still see some ghosting in the center image around the tree, suggesting that my center 
                     of projection may not have been perfectly fixed, or the points I selected may not have been perfect. The rest 
-                    of the image areas where there is overlap look good though, such as the Campanile in the center of the image.
+                    of the image areas where there is overlap look good though, such as the Campanile in the center of the image. 
+                    The scipy distance-based alphas do not behave as expected since there are black points in the image itself, as 
+                    you can see in the alpha mask images above. I also show the centered radial alphas, which perform better and 
+                    remove the edge artifacts.
                 </p>
                 
                 <div class="image-container">
