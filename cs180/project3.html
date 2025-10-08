@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project 3: [Auto]Stitching Photo Mosaics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+    
+    <!-- MathJax for mathematical equations -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+</head>
+<body>
+    <header>
+        <a href="../index.html" style="text-decoration: none;"><h1 class="site-title">Elizabeth Weaver</h1></a>
+        <nav>
+            <a href="../index.html" class="nav-gray">Home</a>
+            <a href="../projects.html" class="nav-dark">Projects</a>
+            <a href="../blog.html" class="nav-green">Blog</a>
+        </nav>
+    </header>
+
+    <div class="ascii-art"></div>
+
+    <div class="breadcrumb">
+        <a href="../projects.html">Projects</a> / <a href="index.html">CS180</a> / Project 3: [Auto]Stitching Photo Mosaics
+    </div>
+
+    <main class="main-content projects with-breadcrumb">
+        <div class="profile-section">
+            <div class="project-header">
+                <h1>Project 3: [Auto]Stitching Photo Mosaics</h1>
+                <p>
+                    The goal of this assignment is to get hands-on experience with different aspects of image warping 
+                    with a "cool" application -- image mosaicing. I take two or more photographs and create image 
+                    mosaics by registering, projective warping, resampling, and compositing them. Along the way, 
+                    I learn how to compute homographies and how to use them to warp images.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part A: Image Warping and Mosaicing</h2>
+                <p>
+                    In Part A of this project, I explore image warping and mosaicing through four main components: 
+                    shooting photographs with projective transformations, recovering homographies from point correspondences, 
+                    warping images using nearest neighbor and bilinear interpolation, and blending images into seamless mosaics. 
+                    This foundational work prepares for the automated feature detection and matching in Part B.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part A.1: Shoot and Digitize Pictures</h2>
+                <p>
+                    For this part, I captured multiple sets of photographs with projective transformations between them. 
+                    The key requirement is to fix the center of projection (COP) and rotate the camera while capturing photos. 
+                    This creates the perspective transformations needed for mosaicing.
+                </p>
+                <p>
+                    I focused on scenes with significant overlap (40-70%) and rich detail to make registration easier. 
+                    The photographs were taken as close together in time as possible to minimize lighting changes and 
+                    subject movement. I used my iPhone to take the photographs, without a tripod (unfortunately I don't 
+                    have one). The center of projection for many of the images I took were approximately fixed, and the 
+                    camera was rotated to capture the scene. My hands are not very steady, so the images are not perfectly 
+                    still, but they are close.
+                </p>
+                
+                <div class="image-container">
+                    <img src="project3/images/left_vs_right_boat_original_images.jpg" alt="left vs right boat original images">
+                    <div class="project-caption">Two images of boats docked at the San Francisco marina, with approximately fixed center of projection and significant overlap.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project3/images/left_vs_right_glade_original_images.jpg" alt="right vs left glade original images">
+                    <div class="project-caption">Two images of the Memorial Glade in Berkeley taken from the Grimes Engineering Center, with approximately fixed center of projection and significant overlap.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project3/images/left_vs_right_mining_original_images.jpg" alt="right vs left mining original images">
+                    <div class="project-caption">Two images with the Hearts Mining Circle peeking through, taken from next to Cory, with fixed center of projection and significant overlap.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project3/images/images_from_grimes.jpg" alt="images from grimes">
+                    <div class="project-caption">Thirteen images of the glade from Grimes Engineering Center, with approximately fixed center of projection and significant overlap between each successive image.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part A.2: Recover Homographies</h2>
+                <p>
+                    Before warping images into alignment, I need to recover the parameters of the transformation between each 
+                    pair of images. The transformation is a homography: $\mathbf{p'} = H\mathbf{p}$, where $H$ is a 3×3 matrix with 8 degrees of freedom 
+                    (the lower right corner is set to 1 for scaling). The minimum number of point correspondences needed to recover the homography is 4, 
+                    but we want as many as possible to get a more accurate homography, since if there are too few, a single pixel error in one of the points 
+                    will throw off the entire homography. Correspondence points were chosen by hand using a selection tool <link>https://docs.opencv.org/4.x/d4/d7d/tutorial_js_gui.html</link> in OpenCV.
+                </p>
+                <p>
+                    I implemented the function <code>computeH(im1_pts, im2_pts)</code> where the input parameters are n×2 matrices 
+                    holding the (x,y) locations of n point correspondences from two images, and H is the recovered 3×3 homography matrix. 
+                    Below is the mathematical derivation for the least squares problem we are solving to recover the homography matrix, as 
+                    well as the pseudocode for the code implementation. We use numpy.linalg.lstsq to solve the least squares problem.
+                </p>
+                
+                <h3>Mathematical Derivation</h3>
+                <p>
+                    For a homography transformation, we have:
+                </p>
+                $$\begin{bmatrix} wx' \\ wy' \\ w \end{bmatrix} = \begin{bmatrix} h_1 & h_2 & h_3 \\ h_4 & h_5 & h_6 \\ h_7 & h_8 & 1 \end{bmatrix} \begin{bmatrix} x \\ y \\ 1 \end{bmatrix}$$
+                
+                <p>
+                    Expanding the matrix multiplication gives us homogeneous coordinates:
+                </p>
+                $$wx' = h_1 x + h_2 y + h_3$$
+                $$wy' = h_4 x + h_5 y + h_6$$
+                $$w = h_7 x + h_8 y + 1$$
+                
+                <p>
+                    Converting back to Cartesian coordinates by dividing by $w$:
+                </p>
+                $$x' = \frac{wx'}{w} = \frac{h_1 x + h_2 y + h_3}{h_7 x + h_8 y + 1}$$
+                $$y' = \frac{wy'}{w} = \frac{h_4 x + h_5 y + h_6}{h_7 x + h_8 y + 1}$$
+                
+                <p>
+                    Cross-multiplying to eliminate the denominators:
+                </p>
+                $$x'(h_7 x + h_8 y + 1) = h_1 x + h_2 y + h_3$$
+                $$y'(h_7 x + h_8 y + 1) = h_4 x + h_5 y + h_6$$
+                
+                <p>
+                    Rearranging into linear form:
+                </p>
+                $$h_1 x + h_2 y + h_3 - h_7 x x' - h_8 y x' = x'$$
+                $$h_4 x + h_5 y + h_6 - h_7 x y' - h_8 y y' = y'$$
+                
+                <p>
+                    For each point correspondence $(x_i, y_i) \leftrightarrow (x'_i, y'_i)$, we get two linear equations. 
+                    We can write this as a matrix equation $\mathbf{A}\mathbf{h} = \mathbf{b}$:
+                </p>
+                
+                $$\begin{bmatrix}
+                x_1 & y_1 & 1 & 0 & 0 & 0 & -x_1 x'_1 & -y_1 x'_1 \\
+                0 & 0 & 0 & x_1 & y_1 & 1 & -x_1 y'_1 & -y_1 y'_1 \\
+                x_2 & y_2 & 1 & 0 & 0 & 0 & -x_2 x'_2 & -y_2 x'_2 \\
+                0 & 0 & 0 & x_2 & y_2 & 1 & -x_2 y'_2 & -y_2 y'_2 \\
+                \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots \\
+                x_n & y_n & 1 & 0 & 0 & 0 & -x_n x'_n & -y_n x'_n \\
+                0 & 0 & 0 & x_n & y_n & 1 & -x_n y'_n & -y_n y'_n
+                \end{bmatrix}
+                \begin{bmatrix}
+                h_1 \\ h_2 \\ h_3 \\ h_4 \\ h_5 \\ h_6 \\ h_7 \\ h_8
+                \end{bmatrix}
+                =
+                \begin{bmatrix}
+                x'_1 \\ y'_1 \\ x'_2 \\ y'_2 \\ \vdots \\ x'_n \\ y'_n
+                \end{bmatrix}$$
+                
+                <p>
+                    For an overdetermined system (n > 4 correspondences), we solve using least squares:
+                </p>
+                $$\mathbf{h} = (\mathbf{A}^T\mathbf{A})^{-1}\mathbf{A}^T\mathbf{b}$$
+                
+                <div class="code-container">
+                    <div class="code-title">Implementation approach (pseudocode)</div>
+                    <pre><code>def computeH(im1_pts, im2_pts):
+    1. Initialize matrix A (2n × 8) and vector b (2n × 1) following the equations above.
+    
+    2. For each point correspondence (x_i, y_i) ↔ (x'_i, y'_i):
+       - Fill row 2i of A with: [x, y, 1, 0, 0, 0, -x*x', -y*x']
+       - Fill row 2i+1 of A with: [0, 0, 0, x, y, 1, -x*y', -y*y']
+       - Set b[2i] = x' and b[2i+1] = y'
+    
+    3. Solve the least squares problem Ah = b:
+       h = np.linalg.lstsq(A, b, rcond=None)[0]
+    
+    4. Reshape h into 3×3 homography matrix:
+       H = [[h[0], h[1], h[2]],
+            [h[3], h[4], h[5]], 
+            [h[6], h[7], 1.0]]
+    
+    5. Return H</code></pre>
+                </div>
+                
+                <h3>Recovered Homography Matrices</h3>
+                <p>
+                    After solving the least squares system $\mathbf{A}\mathbf{h} = \mathbf{b}$ using <code>np.linalg.lstsq</code>, 
+                    we reshape the solution vector $\mathbf{h}$ into the 3×3 homography matrix. Here are the recovered 
+                    homographies for each image pair:
+                </p>
+
+                <div class="image-container">
+                    <img src="project3/images/left_vs_right_boat_correspondences.jpg" alt="left vs right boat correspondences">
+                    <div class="project-caption">Point correspondences for the left vs right boat images.</div>
+                </div>
+                
+                <p><strong>Left vs Right Boat - Homography Matrix:</strong></p>
+                $$H_1 = \begin{bmatrix}
+                1.07975193e+00 & -1.15522883e-01 & -6.59559675e+02 \\
+                8.11001034e-02 & 9.04787032e-01 & -3.69266634e+01 \\
+                3.39702505e-05 & -4.03753665e-05 & 1.00000000e+00
+                \end{bmatrix}$$
+
+                <div class="image-container">
+                    <img src="project3/images/left_vs_right_glade_correspondences.jpg" alt="left vs right glade correspondences">
+                    <div class="project-caption">Point correspondences for the left vs right glade images.</div>
+                </div>
+                
+                <p><strong>Left vs Right Glade - Homography Matrix:</strong></p>
+                $$H_2 = \begin{bmatrix}
+                1.39451348e+00 & -1.34655678e-02 & -1.67657766e+03 \\
+                1.62918805e-01 & 1.21367472e+00 & -4.33326113e+02 \\
+                7.25815595e-05 & -5.62789075e-06 & 1.00000000e+00
+                \end{bmatrix}$$
+                
+                <div class="image-container">
+                    <img src="project3/images/left_vs_right_mining_correspondences.jpg" alt="left vs right mining correspondences">
+                    <div class="project-caption">Point correspondences for the left vs right mining circle images.</div>
+                </div>
+                
+                <p><strong>Left vs Right Mining - Homography Matrix:</strong></p>
+                $$H_3 = \begin{bmatrix}
+                1.54712570e+00 & 2.11966802e-02 & -2.33004497e+03 \\
+                1.83738854e-01 & 1.32938889e+00 & -6.56445285e+02 \\
+                9.62867384e-05 & -2.80014122e-07 & 1.00000000e+00
+                \end{bmatrix}$$
+                
+            </div>
+
+            <div class="project-section">
+                <h2>Part A.3: Warp the Images</h2>
+                <p>
+                    Using the computed homographies, I can now warp images towards a reference image. I implemented two 
+                    interpolation methods from scratch using inverse warping to avoid holes in the output:
+                </p>
+                <ul>
+                    <li><strong>Nearest Neighbor Interpolation:</strong> Round coordinates to the nearest pixel value</li>
+                    <li><strong>Bilinear Interpolation:</strong> Use weighted average of four neighboring pixels</li>
+                </ul>
+                
+                <h3>Implementation Details</h3>
+                
+                <h4>1. Output Canvas Size Calculation</h4>
+                <p>
+                    Both warping functions begin by determining the size of the output canvas needed to contain the entire warped image:
+                </p>
+                <div class="code-container">
+                    <div class="code-title">Canvas size calculation</div>
+                    <pre><code># Transform the four corners of the input image
+corner_points = np.array([[0, 0, 1], [w, 0, 1], [w, h, 1], [0, h, 1]])
+warped_corners = H @ corner_points.T
+warped_corners = warped_corners[:2, :] / warped_corners[2, :]  # Convert to Cartesian
+
+# Find bounding box of warped corners
+min_x, max_x = np.floor(warped_corners[0].min()), np.ceil(warped_corners[0].max())
+min_y, max_y = np.floor(warped_corners[1].min()), np.ceil(warped_corners[1].max())
+out_h, out_w = max_y - min_y, max_x - min_x</code></pre>
+                </div>
+                <p>
+                    This ensures the output image is large enough to contain the entire warped result, accounting for 
+                    rotations and perspective distortions that might expand the image boundaries.
+                </p>
+                
+                <h4>2. Inverse Warping Strategy</h4>
+                <p>
+                    Both implementations use <strong>inverse warping</strong> to avoid holes in the output image. 
+                    For each pixel in the output image, we:
+                </p>
+                <ol>
+                    <li>Convert output coordinates to global coordinates: <code>(x_glob, y_glob) = (out_x + min_x, out_y + min_y)</code></li>
+                    <li>Apply inverse homography: <code>H⁻¹ × [x_glob, y_glob, 1]ᵀ</code></li>
+                    <li>Convert back to Cartesian coordinates by dividing by the homogeneous coordinate</li>
+                    <li>Sample the input image at the resulting location using interpolation</li>
+                </ol>
+                
+                <h4>3. Nearest Neighbor Interpolation</h4>
+                <div class="code-container">
+                    <div class="code-title">Nearest neighbor sampling</div>
+                    <pre><code># Convert homogeneous coordinates back to Cartesian and round
+x_src = int(round(original_pt[0] / original_pt[2]))
+y_src = int(round(original_pt[1] / original_pt[2]))
+
+# Simple bounds check and direct pixel copy
+if 0 <= x_src < w and 0 <= y_src < h:
+    warped_image[out_y, out_x] = im[y_src, x_src]</code></pre>
+                </div>
+                <p>
+                    <strong>Nearest neighbor</strong> is the simplest interpolation method. It rounds the source coordinates 
+                    to the nearest integer pixel location and directly copies that pixel's value. This is fast but can 
+                    produce blocky artifacts, especially when significantly stretching and warping images.
+                </p>
+                
+                <h4>4. Bilinear Interpolation</h4>
+                <div class="code-container">
+                    <div class="code-title">Bilinear interpolation</div>
+                    <pre><code># Keep fractional coordinates for interpolation
+x_src = original_pt[0] / original_pt[2]
+y_src = original_pt[1] / original_pt[2]
+
+# Find the four surrounding pixels
+x_lower, y_lower = int(np.floor(x_src)), int(np.floor(y_src))
+x_upper, y_upper = x_lower + 1, y_lower + 1
+
+# Calculate interpolation weights
+x_change = x_src - x_lower  # fractional part in x
+y_change = y_src - y_lower  # fractional part in y
+
+# Weighted average of four neighboring pixels
+warped_image[out_y, out_x] = (1 - x_change) * (1 - y_change) * im[y_lower, x_lower] + \
+                             x_change * (1 - y_change) * im[y_lower, x_upper] + \
+                             (1 - x_change) * y_change * im[y_upper, x_lower] + \
+                             x_change * y_change * im[y_upper, x_upper]</code></pre>
+                </div>
+                <p>
+                    <strong>Bilinear interpolation</strong> provides much smoother results by computing a weighted average 
+                    of the four nearest pixels. The weights are determined by the fractional parts of the source coordinates:
+                </p>
+                <ul>
+                    <li><strong>Top-left weight:</strong> $(1 - x_{frac}) \times (1 - y_{frac})$</li>
+                    <li><strong>Top-right weight:</strong> $x_{frac} \times (1 - y_{frac})$</li>
+                    <li><strong>Bottom-left weight:</strong> $(1 - x_{frac}) \times y_{frac}$</li>
+                    <li><strong>Bottom-right weight:</strong> $x_{frac} \times y_{frac}$</li>
+                </ul>
+                <p>
+                    This produces smoother images with less aliasing, especially important for rotations and scaling operations.
+                </p>
+                
+                <h4>5. Boundary Handling</h4>
+                <p>
+                    Both implementations include careful boundary checking to ensure we only sample pixels that exist 
+                    in the source image. Pixels that map outside the source image boundaries are left as zeros (black), 
+                    creating a natural alpha mask effect.
+                </p>
+                
+                <h3>Rectification Results</h3>
+                <p>
+                    To test the homography and warping implementation, I performed rectification on images containing 
+                    rectangular objects. By defining correspondences between a tilted rectangle and a perfect square, 
+                    I can verify that the warping correctly transforms perspective distortions.
+                </p>
+                
+                <div class="image-container">
+                    <img src="project3/images/keith_haring_bilinear_rectification_full_workflow.jpg" alt="keith haring bilinear rectification full workflow">
+                    <div class="project-caption">Rectification of a poster depicting Keith Haring's "Men Holding a Heart" using bilinear interpolation.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project3/images/keith_haring_bilinear_vs_nn.jpg" alt="keith haring bilinear vs nearest neighbor rectification">
+                    <div class="project-caption">Comparison of rectification results using bilinear and nearest neighbor interpolation of the same image.</div>
+                </div>
+
+                <p>
+                    In the above comparison image, we can see that the bilinear interpolation results in a much smoother image 
+                    than the nearest neighbor interpolation. If you look closely at the letters on the poster, you can see that the 
+                    nearest neighbor interpolation results in a lot of blocky artifacts that are not present in the bilinear interpolation. 
+                    However, the nearest neighbor interpolation is much faster than the bilinear interpolation. Timing the two functions on 
+                    the Keith Haring poster: Bilinear time = 4.341778993606567 seconds, Nearest Neighbor time = 2.165271043777466 seconds. 
+                    In my opinion, the bilinear interpolation is worth the slightly longer runtime because it results in a much smoother image. 
+                    We will use bilinear interpolation for the rest of the project.
+                </p>
+                
+                <div class="image-container">
+                    <img src="project3/images/tile_bilinear_rectification_full_workflow.jpg" alt="tile bilinear rectification full workflow">
+                    <div class="project-caption">Full workflow of rectification of a tile from Portugal using bilinear interpolation.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project3/images/tile_nn_vs_bilinear.jpg" alt="tile nn vs bilinear rectification">
+                    <div class="project-caption">Comparison of rectification results using nearest neighbor and bilinear interpolation of the same tile image.</div>
+                </div>
+                
+            </div>
+
+            <div class="project-section">
+                <h2>Part A.4: Blend Images into a Mosaic</h2>
+                <p>
+                    With the ability to warp images, I can now create seamless mosaics by registering and blending multiple images. 
+                    Instead of simple overwriting which creates harsh edge artifacts, I use weighted averaging and feathering techniques.
+                </p>
+                <p>
+                    My approach involves picking one image as the reference image and warping the other images onto that 
+                    reference image as the common projection and then blending them using alpha masks. The alpha values 
+                    are determined by the method of blending used. 
+                </p>
+                
+                <h3>Alpha Masks and Weighted Blending</h3>
+                <p>
+                    The key to seamless mosaicing is creating smooth transitions between overlapping images using 
+                    <strong>alpha masks</strong> and <strong>weighted averaging</strong>. An alpha mask assigns each pixel 
+                    a weight between 0 and 1, where 1 means "fully use this pixel" and 0 means "ignore this pixel completely."
+                </p>
+                
+                <h4>1. Simple 50/50 Blending (Uniform Weights)</h4>
+                <p>
+                    The simplest blending approach treats all valid pixels equally:
+                </p>
+                <div class="code-container">
+                    <div class="code-title">Uniform alpha mask</div>
+                    <pre><code># Create binary mask: 1 for valid pixels, 0 for black/invalid pixels
+alpha = np.any(img > 0, axis=2).astype(float)
+
+# Weighted averaging with uniform weights
+final_pixel = (img1 * alpha1 + img2 * alpha2) / (alpha1 + alpha2)</code></pre>
+                </div>
+                <p>
+                    This method simply checks if a pixel has any non-zero color values and assigns it weight 1 if valid, 
+                    0 if invalid (pure black). In overlapping regions, pixels are averaged 50/50. While simple, this 
+                    creates visible seams because there's no gradual transition between images.
+                </p>
+                
+                <h4>2. Linear Edge Falloff</h4>
+                <p>
+                    To create smoother transitions, I implemented linear falloff where alpha values decrease linearly 
+                    from the center toward the edges:
+                </p>
+                <div class="code-container">
+                    <div class="code-title">Linear falloff implementation</div>
+                    <pre><code># Calculate distance to each edge
+dist_up = y                    # distance from top edge
+dist_down = h - y - 1         # distance from bottom edge  
+dist_left = x                 # distance from left edge
+dist_right = w - x - 1        # distance from right edge
+
+# Find minimum distance to any edge
+dist_to_closest_edge = np.minimum(
+    np.minimum(dist_up, dist_down),
+    np.minimum(dist_left, dist_right)
+)
+
+# Normalize to [0,1] and apply to valid pixels only
+alpha = (dist_to_closest_edge / dist_to_closest_edge.max()) * mask</code></pre>
+                </div>
+                <p>
+                    This creates alpha values that are highest at the center of each image and linearly decrease to 0 
+                    at the edges. The result is much smoother blending with gradual transitions, but the linear falloff 
+                    can sometimes create visible gradients in the final mosaic.
+                </p>
+                
+                <h4>3. Distance Transform (scipy.ndimage.distance_transform_edt)</h4>
+                <p>
+                    The Euclidean Distance Transform computes the distance from each valid pixel to the nearest invalid 
+                    (black) pixel:
+                </p>
+                <div class="code-container">
+                    <div class="code-title">Distance transform approach</div>
+                    <pre><code># Create binary mask of valid pixels
+mask = np.any(image > 0, axis=2).astype(float)
+
+# Compute distance to nearest black pixel
+alpha = scipy.ndimage.distance_transform_edt(mask)
+
+# Normalize and apply mask
+alpha = (alpha / alpha.max()) * mask</code></pre>
+                </div>
+                <p>
+                    This method works well when images have clean boundaries (black borders), creating natural feathering 
+                    that follows the image shape. However, it fails when images contain legitimate black pixels in the 
+                    content itself, as these are incorrectly treated as invalid regions, causing unwanted falloff in 
+                    the middle of the image.
+                </p>
+                
+                <h4>4. Centered Radial Falloff</h4>
+                <p>
+                    To address the limitations of distance transform, I implemented a centered approach that creates 
+                    radial falloff from the image center:
+                </p>
+                <div class="code-container">
+                    <div class="code-title">Centered radial falloff</div>
+                    <pre><code># Find image center
+center_x, center_y = w / 2, h / 2
+
+# Calculate distance from each pixel to center
+y, x = np.ogrid[:h, :w]
+dist_from_center = np.sqrt((x - center_x)**2 + (y - center_y)**2)
+
+# Find maximum distance within valid region
+max_dist = dist_from_center[mask > 0].max()
+
+# Create radial falloff: 1 at center, 0 at furthest valid pixel
+alpha = 1.0 - (dist_from_center / max_dist)
+alpha = np.clip(alpha, 0, 1) * mask</code></pre>
+                </div>
+                <p>
+                    This method creates smooth radial gradients that are independent of image content. The alpha values 
+                    are highest at the image center and smoothly decrease toward the edges of the valid region. This 
+                    approach works reliably regardless of image content and creates natural-looking blends.
+                </p>
+                
+                <h3>Weighted Averaging Process</h3>
+                <p>
+                    All blending methods use the same weighted averaging formula:
+                </p>
+                $$\text{final\_pixel} = \frac{\sum_{i} \text{image}_i \times \alpha_i}{\sum_{i} \alpha_i}$$
+                
+                <div class="code-container">
+                    <div class="code-title">Blending implementation</div>
+                    <pre><code># Accumulate weighted pixel values and weights
+img_mosaic[y_min:y_max, x_min:x_max] += img_slice * alpha_slice[:, :, np.newaxis]
+weight_map[y_min:y_max, x_min:x_max] += alpha_slice
+
+# Normalize by total weights to get final pixel values
+non_zero = weight_map > 1e-10
+img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</code></pre>
+                </div>
+                <p>
+                    This ensures that overlapping regions are properly averaged according to their alpha weights, 
+                    while non-overlapping regions retain their original pixel values. The small epsilon (1e-10) 
+                    prevents division by zero in regions where no images contribute.
+                </p>
+                
+                <h3>Mosaic Results</h3>
+            
+                <div class="image-container">
+                    <img src="project3/images/glade_blended.jpg" alt="glade blended">
+                    <div class="project-caption">Blended mosaic of the glade images using weighted averaging and centered radial falloff.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project3/images/glade_all_blending_types.jpg" alt="glade blended">
+                    <div class="project-caption">Blended mosaic of the glade images using weighted averaging and all blending types.</div>
+                </div>
+
+                <p>
+                    Versus the 50/50 blending, we can see that the centered radial falloff and the linear falloff look much better, 
+                    without that harsh transition between the images in the top right corner, successfully removing the edge 
+                    artifacts. We can still see some ghosting in the center image around the tree, suggesting that my center 
+                    of projection may not have been perfectly fixed, or the points I selected may not have been perfect. The rest 
+                    of the image areas where there is overlap look good though, such as the Campanile in the center of the image.
+                </p>
+                
+                <div class="image-container">
+                    <img src="project3/images/mining_blended.jpg" alt="mining blended">
+                    <div class="project-caption">Blended mosaic of the mining images using weighted averaging and centered radial falloff.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project3/images/mining_all_blending_types.jpg" alt="mining blended">
+                    <div class="project-caption">Blended mosaic of the mining images using weighted averaging and all blending types.</div>
+                </div>
+
+                <p>
+                    This image is remarkably good, with no edge artifacts and no ghosting. The blending is done pretty much 
+                    perfectly, with no harsh transitions between the images. This holds for all the blending types, which leads me 
+                    to believe that my center of projection is pretty good, and the points I selected were good as well.
+                </p>
+
+                <div class="image-container">
+                    <img src="project3/images/boat_blending_workflow.jpg" alt="boat blending workflow">
+                    <div class="project-caption">Blended mosaic of the boat images using weighted averaging and centered radial falloff.</div>
+                </div>                
+                <div class="image-container">
+                    <img src="project3/images/boat_blending_types.jpg" alt="boat blending types">
+                    <div class="project-caption">Blended mosaic of the boat images using weighted averaging and all blending types.</div>
+                </div>
+                
+                <p>
+                    This image is by far the worst of the three. The blending is not good, and we can still see some edge artifacts. The 
+                    edge artifacts are less pronounced when using linear falloff than the 50/50 blending, but the center of the image is 
+                    quite blurry with a lot of ghosting. These images I took much closer to the subjects, and I did not have a flat surface 
+                    to put the phone on, so the images are not perfectly still. This is probably the reason why the blending is not good.
+                </p>
+            </div>
+
+        </div>
+    </main>
+    <script src="../ascii-loader.js"></script>
+</body>
+</html>
+
