@@ -100,7 +100,9 @@
                     pair of images. The transformation is a homography: $\mathbf{p'} = H\mathbf{p}$, where $H$ is a 3×3 matrix with 8 degrees of freedom 
                     (the lower right corner is set to 1 for scaling). The minimum number of point correspondences needed to recover the homography is 4, 
                     but we want as many as possible to get a more accurate homography, since if there are too few, a single pixel error in one of the points 
-                    will throw off the entire homography. Correspondence points were chosen by hand using a selection tool <link>https://docs.opencv.org/4.x/d4/d7d/tutorial_js_gui.html</link> in OpenCV.
+                    will throw off the entire homography. Correspondence points were chosen by hand using a selection 
+                    <a href="https://cal-cs180.github.io/fa23/hw/proj3/tool.html">tool</a> written by a prior student and provided to us in the project 
+                    instructions.
                 </p>
                 <p>
                     I implemented the function <code>computeH(im1_pts, im2_pts)</code> where the input parameters are n×2 matrices 
@@ -178,7 +180,7 @@
        - Set b[2i] = x' and b[2i+1] = y'
     
     3. Solve the least squares problem Ah = b:
-       h = np.linalg.lstsq(A, b, rcond=None)[0]
+       h = np.linalg.lstsq(A, b)[0]
     
     4. Reshape h into 3×3 homography matrix:
        H = [[h[0], h[1], h[2]],
@@ -359,7 +361,7 @@ warped_image[out_y, out_x] = (1 - x_change) * (1 - y_change) * im[y_lower, x_low
                     than the nearest neighbor interpolation. If you look closely at the letters on the poster, you can see that the 
                     nearest neighbor interpolation results in a lot of blocky artifacts that are not present in the bilinear interpolation. 
                     However, the nearest neighbor interpolation is much faster than the bilinear interpolation. Timing the two functions on 
-                    the Keith Haring poster: Bilinear time = 4.341778993606567 seconds, Nearest Neighbor time = 2.165271043777466 seconds. 
+                    the Keith Haring poster: Bilinear time = 4.34 seconds, Nearest Neighbor time = 2.17 seconds. 
                     In my opinion, the bilinear interpolation is worth the slightly longer runtime because it results in a much smoother image. 
                     We will use bilinear interpolation for the rest of the project.
                 </p>
@@ -384,8 +386,10 @@ warped_image[out_y, out_x] = (1 - x_change) * (1 - y_change) * im[y_lower, x_low
                 </p>
                 <p>
                     My approach involves picking one image as the reference image and warping the other images onto that 
-                    reference image as the common projection and then blending them using alpha masks. The alpha values 
-                    are determined by the method of blending used. 
+                    reference image as the common projection by calculating the homography matrix between the other images 
+                    and the reference image. We then warp the other images onto the reference image projection plane using 
+                    the inverse homography matrix and then blend them using alpha masks. The alpha values are determined 
+                    by the method of blending used. 
                 </p>
                 
                 <h3>Alpha Masks and Weighted Blending</h3>
@@ -495,7 +499,7 @@ alpha = np.clip(alpha, 0, 1) * mask</code></pre>
                 <p>
                     All blending methods use the same weighted averaging formula:
                 </p>
-                $$\text{final\_pixel} = \frac{\sum_{i} \text{image}_i \times \alpha_i}{\sum_{i} \alpha_i}$$
+                $$\text{final pixel} = \frac{\sum_{i} \text{image}_i \times \alpha_i}{\sum_{i} \alpha_i}$$
                 
                 <div class="code-container">
                     <div class="code-title">Blending implementation</div>
@@ -544,7 +548,8 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                 <p>
                     This image is remarkably good, with no edge artifacts and no ghosting. The blending is done pretty much 
                     perfectly, with no harsh transitions between the images. This holds for all the blending types, which leads me 
-                    to believe that my center of projection is pretty good, and the points I selected were good as well.
+                    to believe that my center of projection is pretty good, and the points I selected were good as well. 
+                    There is a tiny bit of ghosting on the food vans in the center of the image, but it is not very noticeable.
                 </p>
 
                 <div class="image-container">
@@ -552,7 +557,7 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                     <div class="project-caption">Blended mosaic of the boat images using weighted averaging and centered radial falloff.</div>
                 </div>                
                 <div class="image-container">
-                    <img src="project3/images/boat_blending_types.jpg" alt="boat blending types">
+                    <img src="project3/images/boat_all_blending_types.jpg" alt="boat blending types">
                     <div class="project-caption">Blended mosaic of the boat images using weighted averaging and all blending types.</div>
                 </div>
                 
