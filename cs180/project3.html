@@ -646,6 +646,808 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                 </p>
             </div>
 
+            <div class="project-section">
+                <h2>Part B: Feature Matching for Autostitching</h2>
+                <p>
+                    In Part A, I manually selected correspondence points between images to compute homographies. This is tedious 
+                    and error-prone. In Part B, I implement an automated feature detection and matching system that can automatically 
+                    find correspondences between images. This allows for fully automatic image mosaicing without any manual intervention. 
+                    I follow the approach outlined in the paper 
+                    <a href="https://cal-cs180.github.io/fa25/hw/proj3/Papers/MOPS.pdf">"Multi-Image Matching using Multi-Scale Oriented Patches"</a> 
+                    by Brown et al., with some simplifications as specified in the project instructions.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part B.1: Harris Corner Detection</h2>
+                <p>
+                    The first step in automatic feature matching is detecting interest points, or "corners", in both images. I use the 
+                    <strong>Harris Corner Detector</strong> to find corners, which are points where image gradients change 
+                    significantly in multiple directions. These corners are distinctive features that are likely to be recognizable 
+                    in different views of the same scene.
+                </p>
+
+                <h3>Algorithm Overview</h3>
+                <p>
+                    The Harris corner detection algorithm works by analyzing how image gradients change in different directions 
+                    at each pixel. A true corner should have significant gradient changes in multiple directions (unlike an 
+                    edge, which only has gradients in one direction, or a flat region with no gradients). The algorithm produces 
+                    a <strong>corner response matrix</strong> where each pixel's value indicates its corner strength.
+                </p>
+
+                <h4>Harris Corner Detection Process:</h4>
+                <div class="code-container">
+                    <div class="code-title">High-level algorithm</div>
+                    <pre><code>FUNCTION get_harris_corners(image, parameters):
+    
+    1. COMPUTE corner strength matrix:
+       - For each pixel, compute image gradients in x and y directions
+       - Build structure tensor from gradient products (Ix², Iy², IxIy)
+       - Apply Gaussian weighting to structure tensor
+       - Compute corner strength: R = det(M) / trace(M)
+       - Result: H matrix where H[y,x] = corner strength at pixel (x,y)
+    
+    2. FIND local maxima in response matrix:
+       - Search for peaks in H that are local maxima within min_distance radius
+       - Apply threshold to keep only corners stronger than threshold_rel * max(H)
+       - Result: List of (y, x) coordinates of potential corners
+    
+    3. FILTER corners near image boundaries:
+       - Remove any corners within edge_discard pixels of image borders
+       - This ensures we can safely extract feature descriptors later
+       - Result: (2, N) array of corner coordinates, [y-coords; x-coords]
+    
+    RETURN corner_strength_matrix, corner_coordinates</code></pre>
+                </div>
+
+                <p>
+                    The key insight is that the Harris response combines information from both eigenvalues of the structure 
+                    tensor. At a corner, both eigenvalues are large (gradients in multiple directions). At an edge, only one 
+                    eigenvalue is large. In flat regions, both are small. The response formula efficiently captures this 
+                    without computing eigenvalues explicitly.
+                </p>
+
+                <h4>Mathematical Formulation:</h4>
+                <p>
+                    The Harris corner response is computed as:
+                </p>
+                $$R = \frac{\det(M)}{\text{trace}(M)}$$
+                <p>
+                    where the structure tensor \(M\) at each pixel is:
+                </p>
+                $$M = \begin{bmatrix} I_x^2 & I_x I_y \\ I_x I_y & I_y^2 \end{bmatrix}$$
+                <p>
+                    The determinant and trace are related to the eigenvalues \(\lambda_1, \lambda_2\) of \(M\):
+                </p>
+                $$\det(M) = \lambda_1 \lambda_2$$
+                $$\text{trace}(M) = \lambda_1 + \lambda_2$$
+                <p>
+                    Therefore, the corner response can be expressed as:
+                </p>
+                $$R = \frac{\lambda_1 \lambda_2}{\lambda_1 + \lambda_2}$$
+                <p>
+                    The response \(R\) allows us to classify image regions:
+                </p>
+                <ul>
+                    <li><strong>Corner:</strong> Both \(\lambda_1\) and \(\lambda_2\) are large → \(R\) is large</li>
+                    <li><strong>Edge:</strong> One eigenvalue large, i.e. (\(\lambda_1\)), one small (\(\lambda_2\)) → \(R \approx 2\lambda_2\) (small)</li>
+                    <li><strong>Flat region:</strong> Both eigenvalues small → \(R\) is small</li>
+                </ul>
+                <p>
+                    The key insight is that for a corner, the product \(\lambda_1 \lambda_2\) is large (both eigenvalues are large), 
+                    while for an edge, even if one eigenvalue is large, the product divided by the sum is dominated by the smaller 
+                    eigenvalue, making \(R\) small.
+                </p>
+
+                <h4>Key Parameters:</h4>
+                <ul>
+                    <li><strong>sigma:</strong> Controls the scale of the Gaussian smoothing applied before computing gradients. 
+                        I use <code>sigma=1</code> for single-scale detection as suggested in the project instructions.</li>
+                    <li><strong>min_distance:</strong> Minimum distance between detected corners in pixels. This suppresses 
+                        nearby corners to avoid clustering. I experimented with values of 10, 25, and 50 pixels.</li>
+                    <li><strong>threshold_rel:</strong> Relative threshold for corner strength (as a fraction of the maximum 
+                        response). Only corners stronger than <code>threshold_rel * max(h)</code> are kept. I tested values 
+                        of 0.01, 0.05, and 0.1.</li>
+                    <li><strong>edge_discard:</strong> Pixels to discard from image borders (minimum 20 pixels) to ensure 
+                        feature descriptors can be safely extracted without going out of bounds.</li>
+                </ul>
+
+                <div class="image-container">
+                    <img src="project3/images/left_anchor_harris_points.jpg" alt="harris corners detected">
+                    <div class="project-caption">Harris corners detected on the left anchor house image using min_distance=50, threshold_rel=0.01.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project3/images/left_haste_harris_points.jpg" alt="harris corners detected on haste">
+                    <div class="project-caption">Harris corners detected on the left Haste street image using min_distance=50, threshold_rel=0.01.</div>
+                </div>
+
+                <h4>Parameter Exploration</h4>
+                <p>
+                    To understand how parameters affect corner detection, I tested different values:
+                </p>
+
+                <div class="image-container">
+                    <img src="project3/images/left_anchor_harris_points_all_min_distance.jpg" alt="harris corners with different min distances">
+                    <div class="project-caption">Effect of min_distance parameter on anchor house image: 10, 25, and 50 pixels. Larger values spread corners more evenly across the image.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project3/images/left_haste_harris_points_all_min_distance.jpg" alt="haste harris corners with different min distances">
+                    <div class="project-caption">Effect of min_distance parameter on Haste street image: 10, 25, and 50 pixels.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project3/images/left_anchor_harris_points_all_threshold.jpg" alt="harris corners with different thresholds">
+                    <div class="project-caption">Effect of threshold_rel parameter on anchor house image: 0.01, 0.05, and 0.1. Higher thresholds select only the strongest corners, reducing the total count. Min_distance=50.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project3/images/left_haste_harris_points_all_threshold.jpg" alt="haste harris corners with different thresholds">
+                    <div class="project-caption">Effect of threshold_rel parameter on Haste street image: 0.01, 0.05, and 0.1. Min_distance=50.</div>
+                </div>
+
+                <p>
+                    The <strong>min_distance</strong> parameter controls spatial distribution: smaller values allow corners to 
+                    cluster together, while larger values enforce more even spacing. The <strong>threshold_rel</strong> parameter 
+                    controls quality: lower values include weaker corners, while higher values keep only the strongest features. 
+                    For the final pipeline, I use <code>min_distance=10</code> to detect many corners, then apply Adaptive 
+                    Non-Maximal Suppression (ANMS) to select the best distributed subset.
+                </p>
+
+                <h3>Adaptive Non-Maximal Suppression (ANMS)</h3>
+                <p>
+                    Raw Harris corner detection often produces thousands of corners, many clustered in high-texture regions. 
+                    <strong>Adaptive Non-Maximal Suppression</strong> solves this by selecting a subset of corners that are 
+                    well-distributed across the image while prioritizing strong corners. The algorithm comes from Section 3 
+                    of the Brown et al. paper.
+                </p>
+
+                <h4>ANMS Algorithm:</h4>
+                <p>
+                    For each corner \(i\), we compute its <strong>suppression radius</strong> \(r_i\): the distance to the 
+                    nearest corner that is significantly stronger. Formally:
+                </p>
+                $$r_i = \min_{j} \|\mathbf{x}_i - \mathbf{x}_j\| \quad \text{subject to} \quad f(\mathbf{x}_j) > c_{\text{robust}} \cdot f(\mathbf{x}_i)$$
+                <p>
+                    where \(f(\mathbf{x})\) is the Harris corner strength, and \(c_{\text{robust}} = 0.9\) is a robustness constant. 
+                    Corners with larger suppression radii are more "isolated" in their strength and are preferred.
+                </p>
+
+                <h4>The Logic Behind ANMS:</h4>
+                <p>
+                    The fundamental idea is that a good feature point should be locally the strongest in its neighborhood. 
+                    If a corner has many stronger corners nearby, it's redundant. But if the nearest stronger corner is far away, 
+                    this corner is providing unique information about that region of the image.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">ANMS algorithm pseudocode</div>
+                    <pre><code>FUNCTION adaptive_non_maximal_suppression(corners, strengths, num_to_select):
+
+    1. INITIALIZE suppression radius for each corner to infinity
+    
+    2. COMPUTE pairwise distances between all corners:
+       - Create distance matrix D where D[i,j] = distance from corner i to corner j
+       - This can be done efficiently: ||xi - xj||² = ||xi||² + ||xj||² - 2⟨xi, xj⟩
+    
+    3. FOR each corner i:
+         a. FIND all corners j that are significantly stronger:
+            - stronger_mask[j] = True if strength[j] > strength[i] / c_robust
+            - The division by c_robust makes the test slightly lenient
+         
+         b. IF any stronger corners exist:
+            - suppression_radius[i] = minimum distance to any stronger corner
+         ELSE:
+            - suppression_radius[i] = infinity (this is the strongest corner)
+    
+    4. SORT corners by suppression radius (largest first)
+       - Corners with large radii are "isolated peaks" in the strength landscape
+       - These are the most informative features
+    
+    5. SELECT top num_to_select corners with largest suppression radii
+    
+    RETURN selected_corners, their_indices, all_suppression_radii</code></pre>
+                </div>
+
+                <p>
+                    <strong>Why this works:</strong> Consider two scenarios. In a high-texture region (like a building facade), 
+                    many corners will be detected close together. Most will have small suppression radii because there are stronger 
+                    corners nearby. Only the very strongest corners in that region will have larger radii. In contrast, a moderately 
+                    strong corner in an otherwise smooth region might have a very large suppression radius because the nearest 
+                    stronger corner is far away. ANMS balances these cases, selecting corners that are both strong AND well-distributed.
+                </p>
+
+                <p>
+                    The <strong>robustness constant</strong> \(c_{\text{robust}} = 0.9\) adds tolerance: we don't require neighbors 
+                    to be strictly stronger, just stronger by a factor of 0.9. This prevents numerical instabilities when corners 
+                    have very similar strengths.
+                </p>
+
+                <h4>ANMS vs. Simple Thresholding</h4>
+                <p>
+                    The comparison below shows why ANMS is superior to simply selecting the 500 strongest Harris corners:
+                </p>
+
+                <div class="image-container">
+                    <img src="project3/images/left_anchor_harris_points_vs_anms.jpg" alt="harris vs anms comparison">
+                    <div class="project-caption">Top row: 500 strongest Harris corners (left) vs. ANMS-selected corners (right) for anchor house image. Bottom row: Same comparison with threshold_rel=0.01. ANMS produces much better spatial distribution across the entire image, while strongest corners cluster in high-texture regions like the building facade.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project3/images/left_haste_harris_points_vs_anms.jpg" alt="haste harris vs anms comparison">
+                    <div class="project-caption">Comparison of 500 strongest Harris corners (left) vs. ANMS-selected corners (right) for the Haste street image. ANMS provides better spatial distribution across street signs, buildings, and foliage.</div>
+                </div>
+
+                <p>
+                    The ANMS-selected corners are much better distributed across the images, including diverse regions like sky, trees, 
+                    building facades, and street infrastructure. Simple strength-based selection produces heavy clustering in high-texture 
+                    regions, leaving other areas underrepresented. This balanced distribution is crucial for robust homography estimation.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part B.2: Feature Descriptor Extraction</h2>
+                <p>
+                    After detecting corner locations, I need to create <strong>feature descriptors</strong>: compact representations 
+                    that capture the local appearance around each corner. These descriptors enable matching corners between images 
+                    even when viewpoints change. I implement the approach from Section 4 of the Brown et al. paper, using 
+                    axis-aligned 8×8 descriptors sampled from 40×40 pixel windows.
+                </p>
+
+                <h3>Feature Descriptor Extraction Pipeline</h3>
+                <p>
+                    A feature descriptor must compactly represent the local appearance around a corner point in a way that's 
+                    robust to variations in viewpoint, lighting, and small geometric distortions. The challenge is balancing 
+                    <strong>distinctiveness</strong> (descriptors from different locations should look different) with 
+                    <strong>repeatability</strong> (the same physical point in different images should produce similar descriptors).
+                </p>
+
+                <h4>The Four-Step Extraction Process:</h4>
+                <ol>
+                    <li><strong>Gaussian Blur:</strong> Smooth the image with \(\sigma=1.5\) to create a blurred descriptor that's 
+                        less sensitive to small pixel-level noise and aliasing</li>
+                    <li><strong>Sample 40×40 Window:</strong> Define a large window centered on the corner point to capture sufficient context</li>
+                    <li><strong>Subsample to 8×8:</strong> Sample 8×8 points evenly spaced within the 40×40 window (every 5 pixels), 
+                        using bilinear interpolation for subpixel accuracy</li>
+                    <li><strong>Bias-Gain Normalize:</strong> Normalize the descriptor to zero mean and unit variance to achieve 
+                        invariance to brightness and contrast changes</li>
+                </ol>
+
+                <div class="code-container">
+                    <div class="code-title">Feature descriptor extraction pseudocode</div>
+                    <pre><code>FUNCTION get_feature_descriptors(grayscale_image, corner_locations):
+
+    CONSTANTS:
+        window_size = 40 pixels        # Large window for context
+        descriptor_size = 8 × 8 = 64   # Compact representation
+        spacing = 40 / 8 = 5 pixels    # Sample every 5 pixels
+        blur_sigma = 1.5               # Smoothing parameter
+    
+    1. PREPROCESS image:
+       - Apply Gaussian blur with σ = 1.5 to entire image
+       - This creates "nice big blurred descriptors" as mentioned in the paper
+       - Reduces high-frequency noise, makes descriptors more robust
+    
+    2. FOR each corner location (x_center, y_center):
+       
+       a. CHECK boundary conditions:
+          - If window extends outside image (±20 pixels from corner)
+          - Mark this descriptor as invalid and skip
+          - Ensures we only extract complete descriptors
+       
+       b. CREATE sampling grid:
+          - Start at (x_center - 20, y_center - 20)  [top-left of window]
+          - Sample 8 points in each direction with spacing = 5
+          - Sampling positions: -17.5, -12.5, -7.5, ..., +17.5 from center
+          - These are at the CENTERS of 5×5 pixel blocks
+       
+       c. EXTRACT descriptor values via bilinear interpolation:
+          - For each of 64 sample positions (y, x):
+          - Find four surrounding pixels: (⌊x⌋, ⌊y⌋), (⌈x⌉, ⌊y⌋), etc.
+          - Compute weights based on fractional parts
+          - Interpolated value = weighted average of four pixels
+          - This provides subpixel accuracy
+       
+       d. NORMALIZE descriptor (bias-gain normalization):
+          - Compute μ = mean of 64 values
+          - Compute σ = standard deviation of 64 values  
+          - Normalized descriptor = (values - μ) / (σ + ε)
+          - Result: zero mean, unit variance
+          - Invariant to affine intensity changes: I' = aI + b
+    
+    3. RETURN descriptors and validity flags</code></pre>
+                </div>
+
+                <h4>Why These Design Choices?</h4>
+                <p>
+                    Each design decision addresses a specific challenge in feature matching:
+                </p>
+                <ul>
+                    <li><strong>40×40 window → 8×8 descriptor:</strong> The large window captures enough context to be distinctive 
+                        (can distinguish between different image regions), while downsampling to 8×8 keeps the descriptor compact 
+                        (only 64 dimensions) and reduces noise. The paper emphasizes sampling from a "nice big blurred descriptor" 
+                        rather than directly extracting an 8×8 patch. This 5:1 downsampling ratio provides natural smoothing.</li>
+                    
+                    <li><strong>Bilinear interpolation:</strong> Since our sampling grid might not align perfectly with pixel 
+                        boundaries, we interpolate. Consider sampling at position (10.5, 10.5) - we take a weighted average of 
+                        pixels (10,10), (11,10), (10,11), and (11,11) with weights based on distance. This provides subpixel 
+                        accuracy and makes descriptors less sensitive to small translations or rotations.</li>
+                    
+                    <li><strong>Gaussian blur (σ=1.5) before sampling:</strong> This is crucial for robustness. Without blur, 
+                        tiny pixel-level noise or aliasing artifacts would contaminate the descriptor. With blur, we're effectively 
+                        looking at "blurred patches" which are more stable across different images of the same scene. The σ=1.5 
+                        value provides moderate smoothing without losing too much detail.</li>
+                    
+                    <li><strong>Bias-gain normalization:</strong> This makes descriptors <em>invariant to affine intensity changes</em>. 
+                        If image 2 is brighter than image 1 (\(I_2 = aI_1 + b\)), the normalized descriptors will still match because 
+                        we remove the mean (eliminates \(b\)) and divide by standard deviation (eliminates \(a\)). Mathematically:
+                        $$\text{descriptor} = \frac{\text{values} - \mu}{\sigma + \epsilon}$$
+                        The epsilon (typically \(10^{-10}\)) prevents division by zero in constant-valued patches.</li>
+                    
+                    <li><strong>Boundary checking:</strong> We need a full 40×40 window around each corner. Corners within 20 pixels 
+                        of image edges can't provide complete descriptors, so we mark them invalid rather than using partial or 
+                        zero-padded windows which would produce unreliable descriptors.</li>
+                </ul>
+
+                <p>
+                    <strong>A key insight:</strong> We don't store raw pixel values; we store <em>normalized intensity patterns</em>. 
+                    Two image patches that have the same "texture" but different brightnesses will produce nearly identical descriptors. 
+                    This is why the method works across images taken with different exposures or lighting conditions.
+                </p>
+
+                <div class="image-container">
+                    <img src="project3/images/anms_descriptors.jpg" alt="feature descriptors visualization">
+                    <div class="project-caption">Left: Anchor house image with two ANMS corner points highlighted (red and magenta). Middle/Right: Their corresponding 8×8 feature descriptors shown as grayscale patches. Each descriptor captures the local texture pattern around its corner after bias-gain normalization.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project3/images/anms_descriptors_haste.jpg" alt="feature descriptors visualization haste">
+                    <div class="project-caption">Left: Haste street image with three ANMS corner points highlighted (blue, cyan,and magenta). Middle/Right: Their corresponding 8×8 feature descriptors shown as grayscale patches. The red point captures texture from foliage and building detail, the magenta point shows patterns from street infrastructure, and the green point captures texture from the building facade.</div>
+                </div>
+
+                <p>
+                    The visualized descriptors show how different image regions produce distinct patterns. In the anchor house example, 
+                    the red point's descriptor captures interesting texture pattern from the tree branches, while the magenta point's descriptor 
+                    shows straight lines of the building window. In the Haste street example, descriptors capture varied textures from the bike wheel, 
+                    the street light, and the tree branches. These distinctive signatures enable reliable matching across images.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part B.3: Feature Matching</h2>
+                <p>
+                    With feature descriptors extracted from both images, I now need to find corresponding features. 
+                    I implement <strong>mutual nearest neighbor matching</strong> with <strong>Lowe's ratio test</strong> 
+                    to create reliable matches between image pairs.
+                </p>
+
+                <h3>Feature Matching Algorithm</h3>
+                <p>
+                    Given descriptors from two images, how do we decide which pairs correspond to the same physical point? 
+                    The naive approach—just match each descriptor to its nearest neighbor—produces many false matches because 
+                    similar-looking textures (like windows, bricks, or leaves) create ambiguous correspondences. I use two 
+                    complementary strategies to ensure reliable matching:
+                </p>
+
+                <h4>Strategy 1: Lowe's Ratio Test</h4>
+                <p>
+                    <strong>The Problem:</strong> Repetitive textures create ambiguous matches. If descriptor A looks very similar 
+                    to both descriptor B and descriptor C, we can't confidently say which is the correct match.
+                </p>
+                <p>
+                    <strong>Lowe's Solution:</strong> A match is only reliable if the nearest neighbor is <em>significantly closer</em> 
+                    than the second-nearest neighbor. Formally, accept a match only if:
+                </p>
+                $$\frac{\text{dist}(\text{descriptor}_A, \text{NN}_1)}{\text{dist}(\text{descriptor}_A, \text{NN}_2)} < \text{threshold}$$
+                <p>
+                    With threshold = 0.8, we require the best match to be at least 25% closer than the second-best match. 
+                    If the ratio is close to 1.0, the match is ambiguous and we reject it. If the ratio is small (say, 0.5), 
+                    there's a clear winner and we accept it.
+                </p>
+
+                <h4>Strategy 2: Mutual Nearest Neighbors</h4>
+                <p>
+                    <strong>The Problem:</strong> One-way matching can create many-to-one correspondences. Multiple descriptors 
+                    from image 1 might all match the same descriptor in image 2.
+                </p>
+                <p>
+                    <strong>Solution:</strong> Require <em>bidirectional agreement</em>. Only accept (A, B) as a match if:
+                </p>
+                <ul>
+                    <li>A's nearest neighbor in image 2 is B, <em>AND</em></li>
+                    <li>B's nearest neighbor in image 1 is A</li>
+                </ul>
+                <p>
+                    This symmetry requirement is very powerful. False matches rarely satisfy both directions because accidental 
+                    similarity is unlikely to be reciprocal.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Feature matching pseudocode</div>
+                    <pre><code>FUNCTION match_descriptors(descriptors_img1, descriptors_img2, ratio_threshold):
+
+    1. COMPUTE pairwise distances:
+       - Flatten each 8×8 descriptor to 64-dimensional vector
+       - Compute distance matrix D where D[i,j] = ||desc1[i] - desc2[j]||
+       - Use Euclidean distance in 64-dimensional space
+       - This can be vectorized for efficiency: ||a-b||² = ||a||² + ||b||² - 2⟨a,b⟩
+    
+    2. FIND left-to-right candidate matches (image 1 → image 2):
+       - For each descriptor i in image 1:
+         a. Find two nearest neighbors in image 2:
+            - nn1 = descriptor with smallest distance to i
+            - nn2 = descriptor with second-smallest distance to i
+         
+         b. Apply Lowe's ratio test:
+            - ratio = distance(i, nn1) / distance(i, nn2)
+            - IF ratio < threshold (typically 0.8):
+                - Store: left_to_right_matches[i] = nn1
+                - This is a candidate match
+            - ELSE:
+                - Reject (too ambiguous)
+    
+    3. FIND right-to-left candidate matches (image 2 → image 1):
+       - Same process in reverse direction
+       - For each descriptor j in image 2:
+         - Find its nearest and second-nearest neighbors in image 1
+         - Apply ratio test
+         - Store: right_to_left_matches[j] = nn1
+    
+    4. KEEP only mutual matches (bidirectional agreement):
+       - For each candidate match (i → j) from step 2:
+         - CHECK if j → i exists in step 3
+         - IF yes: this is a mutual match, keep it
+         - IF no: one-way match only, discard it
+       
+       - Result: Each matched pair satisfies BOTH:
+         1. i's best match is j (with good ratio)
+         2. j's best match is i (with good ratio)
+    
+    RETURN list of matched pairs (i, j)</code></pre>
+                </div>
+
+                <h4>Why This Works:</h4>
+                <p>
+                    <strong>Lowe's ratio test</strong> eliminates ambiguous matches. In repetitive regions (brick walls, windows), 
+                    many descriptors look similar, so the ratio approaches 1.0 and we reject them. In distinctive regions 
+                    (unique corners, irregular textures), the nearest neighbor is much closer than alternatives, ratio is small, 
+                    and we accept them.
+                </p>
+                <p>
+                    <strong>Mutual nearest neighbors</strong> eliminates asymmetric errors. Consider a textured region in image 1 
+                    that's occluded in image 2. Descriptors from that region might match to <em>something</em> in image 2 
+                    (one-way), but those image 2 descriptors have better matches elsewhere, so the match won't be mutual. 
+                    Only true correspondences—the same physical point visible in both images—consistently produce mutual matches.
+                </p>
+                <p>
+                    <strong>Combined effect:</strong> The two filters work together beautifully. Ratio test removes ambiguous 
+                    matches (low-confidence). Mutual NN removes incorrect matches (mismatches). What remains is a high-quality 
+                    set of correspondences suitable for geometric estimation, though some outliers inevitably remain (handled by RANSAC).
+                </p>
+
+                <h4>Effect of Ratio Threshold</h4>
+                <p>
+                    The ratio threshold controls the trade-off between match quantity and quality:
+                </p>
+
+                <div class="image-container">
+                    <img src="project3/images/anchor_matches.jpg" alt="feature matches with different thresholds">
+                    <div class="project-caption">Anchor house: Top row shows all ANMS corners detected (blue points). Middle row: Matches with ratio_threshold=1.0 (accepts all matches). Third row: Matches with ratio_threshold=0.8 (balanced). Bottom row: Matches with ratio_threshold=0.6 (very strict). Lower thresholds produce fewer but more reliable matches.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project3/images/haste_matches.jpg" alt="feature matches haste with different thresholds">
+                    <div class="project-caption">Haste street: Top row shows all ANMS corners detected (blue points). Middle row: Matches with ratio_threshold=1.0. Third row: Matches with ratio_threshold=0.8. Bottom row: Matches with ratio_threshold=0.6. The Haste street scene has rich texture from buildings and foliage, producing many reliable matches even with stricter thresholds.</div>
+                </div>
+
+                <p>
+                    With <code>ratio_threshold=1.0</code>, we accept nearly all nearest neighbor matches, including many 
+                    false positives from ambiguous or repetitive textures. With <code>ratio_threshold=0.6</code>, we get 
+                    very high-quality matches but fewer overall. The default <code>ratio_threshold=0.8</code> provides a 
+                    good balance: enough matches for robust homography estimation while filtering most false positives. 
+                    RANSAC (next section) will handle any remaining outliers.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part B.4: RANSAC for Robust Homography Estimation</h2>
+                <p>
+                    Even with careful feature matching, some incorrect correspondences (outliers) inevitably remain. 
+                    <strong>RANSAC (RANdom SAmple Consensus)</strong> is a robust estimation technique that can compute 
+                    an accurate homography even when a significant fraction of matches are wrong. I implement 4-point 
+                    RANSAC as described in class.
+                </p>
+
+                <h3>RANSAC Algorithm Overview</h3>
+                <p>
+                    RANSAC (RANdom SAmple Consensus) is an elegant solution to a fundamental problem: how do we fit a model 
+                    when some of our data points are completely wrong? Traditional least-squares fitting assumes all points 
+                    have small errors, but with feature matching, some correspondences are <em>outliers</em>: completely incorrect 
+                    matches that don't satisfy any geometric relationship.
+                </p>
+
+                <h4>The Core Insight:</h4>
+                <p>
+                    Instead of trying to fit all points at once (which outliers would corrupt), RANSAC repeatedly fits models 
+                    to <em>small random subsets</em> and asks: "How many of the <em>other</em> points agree with this model?" 
+                    The model that explains the most data points is likely the correct one. Outliers rarely agree with any 
+                    model, so they're automatically excluded.
+                </p>
+
+                <h4>RANSAC for Homography Estimation:</h4>
+                <div class="code-container">
+                    <div class="code-title">RANSAC pseudocode</div>
+                    <pre><code>FUNCTION ransac_homography(matches, points_img1, points_img2, epsilon, num_iterations):
+
+    INITIALIZE:
+        best_H = None
+        best_inliers = []
+        best_num_inliers = 0
+    
+    REPEAT num_iterations times:
+        
+        1. RANDOM SAMPLE:
+           - Randomly select 4 matched point pairs
+           - Each pair (p1[i], p2[i]) is a correspondence
+           - 4 is the minimum needed to solve for a homography (8 DOF)
+        
+        2. COMPUTE HOMOGRAPHY:
+           - Solve for H using these 4 pairs (as in Part A)
+           - This gives us a candidate homography matrix
+        
+        3. COUNT INLIERS:
+           - For EVERY match (not just the 4 we sampled):
+             a. Transform point from img1 using H: p2_predicted = H * p1
+             b. Compute reprojection error: error = ||p2_predicted - p2_actual||
+             c. If error < epsilon pixels: this match is an inlier
+           
+           - Total inliers = number of matches that agree with H
+        
+        4. UPDATE BEST:
+           - If num_inliers > best_num_inliers:
+             - Save this H as best_H
+             - Save which matches are inliers
+             - Update best_num_inliers
+    
+    5. REFINEMENT (after all iterations):
+       - We now have a set of inlier matches (likely correct)
+       - Recompute H using ALL inliers (not just 4)
+       - This improves accuracy since we're using more data
+       - Least-squares with inliers only is much better than with outliers
+    
+    RETURN best_H, inlier_mask, num_inliers</code></pre>
+                </div>
+
+                <h4>Computing Inliers (The Agreement Test):</h4>
+                <p>
+                    For a candidate homography \(H\), we test each match \((p_1, p_2)\) by computing the 
+                    <strong>reprojection error</strong>:
+                </p>
+                <ol>
+                    <li>Transform \(p_1\) from image 1 to image 2 coordinates: \(p_2' = H p_1\) (in homogeneous coordinates)</li>
+                    <li>Measure distance between predicted position \(p_2'\) and actual position \(p_2\):
+                        $$\text{error} = \|p_2' - p_2\|$$
+                    </li>
+                    <li>If error &lt; \(\epsilon\) (I use \(\epsilon = 3\) pixels), count this as an inlier</li>
+                </ol>
+                <p>
+                    A match is an <strong>inlier</strong> if it's <em>consistent</em> with the geometric transformation \(H\). 
+                    The threshold \(\epsilon = 3\) pixels allows for small errors from feature detection imprecision or interplolation, but 
+                    rejects matches that are geometrically impossible under that homography.
+                </p>
+
+                <h4>Why RANSAC Works</h4>
+                <p>
+                    The probability that all 4 randomly selected matches are inliers (and thus produce a good homography) is:
+                </p>
+                $$P(\text{good sample}) = \left(\frac{\text{num inliers}}{\text{total matches}}\right)^4$$
+                <p>
+                    Even if only 50% of matches are correct, after 100,000 iterations, we're virtually guaranteed to sample 
+                    4 correct matches many times: \(1 - (1 - 0.5^4)^{100000} \approx 1.0\). Each good sample produces a 
+                    candidate homography, and we keep the one with the most agreement (inliers).
+                </p>
+
+                <h3>Complete Automatic Stitching Pipeline</h3>
+                <p>
+                    Now I can combine all the components into a complete system that takes two images and produces a 
+                    stitched mosaic with zero manual intervention:
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">End-to-end automatic stitching</div>
+                    <pre><code>FUNCTION automatic_image_stitching(image1, image2):
+
+    1. PREPROCESSING:
+       - Convert both images to grayscale for feature detection
+       - Color information isn't useful for finding corners
+    
+    2. HARRIS CORNER DETECTION:
+       - Detect corners in both images
+       - Parameters: min_distance = 15, threshold_rel = 0.01
+       - Results: Thousands of potential corner points per image
+    
+    3. ADAPTIVE NON-MAXIMAL SUPPRESSION:
+       - Select best 1000 corners from each image
+       - These are well-distributed across the image
+       - Avoids clustering in high-texture regions
+    
+    4. FEATURE DESCRIPTOR EXTRACTION:
+       - Extract 8×8 descriptor for each corner (from 40×40 window)
+       - Apply Gaussian blur (σ = 1.8) and bias-gain normalization
+       - Filter out invalid descriptors (too close to image boundaries)
+       - Results: ~1000 valid descriptors per image
+    
+    5. FEATURE MATCHING:
+       - Match descriptors using mutual NN + Lowe's ratio test (threshold = 0.8)
+       - Results: Typically 100-200 matched pairs
+       - Some are correct correspondences, some are outliers
+    
+    6. RANSAC FOR ROBUST HOMOGRAPHY:
+       - Run 100,000 RANSAC iterations with ε = 3 pixels
+       - Finds best homography that explains the most matches
+       - Results: ~50-100 inliers (correct matches), outliers rejected
+    
+    7. REFINEMENT:
+       - Recompute homography using all inlier matches
+       - This gives more accurate H than using just 4 random points
+    
+    8. IMAGE WARPING:
+       - Warp one image to align with the other using H
+       - Use bilinear interpolation for smooth results
+       - Compute output canvas size to fit entire warped image
+    
+    9. ALPHA BLENDING:
+       - Blend warped and reference images using alpha masks
+       - Use some simple falloff for smooth transitions between images (linear, distance, centered, or laplacian blending)
+       - Results: mosaic with minimal visible seams
+    
+    RETURN final_mosaic</code></pre>
+                </div>
+
+                <p>
+                    The power of this pipeline is that each stage progressively filters and refines the data:
+                </p>
+                <ol>
+                    <li>Harris → Many candidate features (quantity)</li>
+                    <li>ANMS → Well-distributed subset (spatial balance)</li>
+                    <li>Descriptors → Distinctive representations (quality)</li>
+                    <li>Matching → Likely correspondences (pruning)</li>
+                    <li>RANSAC → Geometrically consistent inliers (robustness)</li>
+                </ol>
+
+                <p>
+                    By the time we reach homography estimation, we've filtered 20,000 raw corners down to ~50-100 
+                    high-confidence inliers. This multi-stage filtering is what makes automatic stitching reliable 
+                    in practice.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Results: Manual vs. Automatic Stitching</h2>
+                <p>
+                    Now I can compare the quality of manual stitching (Part A, with hand-selected correspondences) 
+                    versus automatic stitching (Part B, with detected and matched features). For each of the following, 
+                    I tried different parameters for the automatic stitching pipeline to improve the results. I ended 
+                    up settling on the following parameters: min_distance=15, threshold_rel=0.01, sigma=1.8, and ratio_threshold=0.8. 
+                </p>
+
+                <h3>Anchor House Comparison</h3>
+                <div class="image-container">
+                    <img src="project3/images/anchor_blended_ransac_vs_handpicked.jpg" alt="automatic anchor stitching">
+                    <div class="project-caption">Automatic stitching result using the full RANSAC pipeline versus manual stitching.</div>
+                </div>
+
+                <p>
+                    The automatic result doesn't align the images as well as the manual stitching. There are some slight artifacts in the image, 
+                    such as the top of the anchor house being slightly off. I think this is because the automatic stitching may struggle with 
+                    the repetitive texture of the anchor house building as well as the building on the left. There isn't much overlap between the images 
+                    when it comes to these buildings as well, so the good corners being chosen might not mostly be in the overlap of the images. There 
+                    is also a decent amount of sky, which has minimal texture, making it difficult for the automatic stitching to find good feature 
+                    matches. The markings on the road have good alignment though, which is interesting.
+                </p>
+
+                <h3>Memorial Glade Comparison</h3>
+                <div class="image-container">
+                    <img src="project3/images/glade_blended_ransac_vs_handpicked.jpg" alt="automatic glade stitching">
+                    <div class="project-caption">Automatic stitching of the Memorial Glade panorama versus manual stitching.</div>
+                </div>
+
+                <p>
+                    The automatic result doesn't align the images as well as the manual stitching again here, but this is probably the fault of my image taking skills. 
+                    There are some slight artifacts in the image, such as the campanile on the left of the image being slightly off, and the walkway at the bottom of 
+                    the image having blurry railings. However, the RANSAC stitching does so much better on the dead tree in the center of the image than the manual stitching. 
+                    Maybe many of the good matches or homographies found by RANSAC did well on the tree in the center of the image, but the manual stitching did not. 
+                    I think the automatic stitching struggles with the vast sky in this image, and maybe struggles with the repetitive texture of the buildings on the sides 
+                    of the images. 
+                </p>
+
+                <h3>Mining Circle Comparison</h3>
+                <div class="image-container">
+                    <img src="project3/images/mining_blended_ransac_vs_handpicked.jpg" alt="automatic mining stitching">
+                    <div class="project-caption">Automatic stitching of the Mining Circle scene versus manual stitching.</div>
+                </div>
+
+                <p>
+                    The automatic result doesn't align the images as well as the manual stitching here. There are some slight artifacts in the image, such as 
+                    the windows on evans hall being off. However, the automatic stitching does so much better on the food vans in the center of the image than 
+                    the manual stitching. Generally, the automatic stitching does well on the center of the image. Again, there wasn't a ton of overlap in this 
+                    image on the buildings, which is visually where most of the good corners are. The automatic stitching may also struggle here just because 
+                    of my own ability to take images with good overlap and keep my hands steady to keep the center of projection fixed.
+                </p>
+            </div>
+            <div class="project-section"></div>
+                <h2>Good Automatic Stitching Results</h2>
+                <p>
+                    After failure with the automatic stitching results on the part A images I used, I went out and took some more images 
+                    that have less sky and more interesting and non repetitive texture. I used these images to test the automatic stitching pipeline.
+                </p>
+                <div class="image-container">
+                    <img src="project3/images/college_haste_blended.jpg" alt="automatic glade stitching">
+                    <div class="project-caption">Automatic stitching of a street scene at the corner of College and Haste.</div>
+                </div>
+                <p>
+                    This image is a good example of the automatic stitching pipeline working well. There is a good amount of overlap between the images, 
+                    and the automatic stitching is able to find good feature matches in the overlap. The result is a good blend of the two images, with 
+                    little visible artifacts. The only visible artifact is the church building in the background of the image being slightly blurry, but 
+                    once again this is probably the fault of my own image taking skills and keeping my hands steady to keep the center of projection fixed. 
+                    The blending was done with centered radial falloff, but I also squared the alpha mask to get an even faster falloff. The blending method 
+                    comparisons are shown below.
+                </p>
+                <div class="image-container">
+                    <img src="project3/images/college_haste_blended_comparison.jpg" alt="automatic college haste blending types">
+                    <div class="project-caption">Blended mosaic of the college haste images using weighted averaging and various blending types.</div>
+                </div>
+                <p>
+                    As you can see, the edges of the images are very visible without the centered radial falloff with a faster falloff. The linear falloff 
+                    and the centered falloff look very similar with the same issue with the bottom right corner of the left image being prominent enough to see. 
+                    This issue is solved by squaring the alpha mask, which gives an even faster falloff.
+                </p>
+
+
+                <div class="image-container">
+                    <img src="project3/images/unit2_blended.jpg" alt="automatic unit 2 stitching">
+                    <div class="project-caption">Automatic stitching of the images of the Unit 2 buildings. The two photos have different exposures, but we are able to blend out the edges.</div>
+                </div>
+                <p>
+                    These images were taken pretty poorly, as the exposure is different between the two images. However, the automatic stitching is able to find good feature matches in the overlap, 
+                    and the result is a good blend of the two images, with little visible artifacts. This image also has a good amount of repetitive textures, however, each building has different 
+                    window sizes and many of the windows are varied with curtain textures, which seems to make the corners different enough to be able to match them well. The blending was done with 
+                    centered radial falloff, but I also cubed the alpha mask to get an even faster falloff. The blending method comparisons are shown below.
+                </p>
+                <div class="image-container">
+                    <img src="project3/images/unit2_blended_comparison.jpg" alt="automatic unit 2 blending types">
+                    <div class="project-caption">Blended mosaic of the unit 2 images using weighted averaging and various blending types.</div>
+                </div>
+                <p>
+                    As you can see, the edges of the images are extremely visible without the centered radial falloff with a faster falloff of cubing. The linear falloff 
+                    and the centered falloff look very similar with the same issue with all edges of both images being visible, because of the different exposures between 
+                    the two images. This issue is solved by cubing the alpha mask, which gives an even faster falloff and helps to blend out the exposure differences between 
+                    the two images.
+                </p>
+
+
+                <div class="image-container">
+                    <img src="project3/images/apartment_blended.jpg" alt="automatic apartment stitching">
+                    <div class="project-caption">Automatic stitching of the an apartment building courtyard. Originally, the bike on the right had some artifacting, but with some parameter tweaking, we were able to align it correctly.</div>
+                </div>
+                <p>
+                    These images have little overlap, but the automatic stitching is able to find good feature matches in the overlap, and the result is a good blend of the two images. Maybe this is because it looks like 
+                    some of the strongest corners could be in the overlap of the images, such as the dark doorway in the back, as well as some of the darkest windows being in the overlaping region. This image took some 
+                    tuning to get the bike on the right to align correctly, but once again, this is probably the fault of my own image taking skills and keeping my hands steady to keep the center of projection fixed. But now 
+                    the bike is aligned correctly and the only visible artifacting are some small leaves on the ground and some leaves on the tree in the background.
+                    The blending was done with centered radial falloff, but I also tried sqaring the alpha mask to get an even faster falloff. The blending method comparisons are shown below.
+                </p>
+                <div class="image-container">
+                    <img src="project3/images/apartment_blended_comparison.jpg" alt="automatic apartment blending types">
+                    <div class="project-caption">Blended mosaic of the apartment images using weighted averaging and various blending types.</div>
+                </div>
+                <p>
+                    As you can see, the left edge of the image is pretty visible with 50/50 blending (no falloff), but the rest of the blending types look pretty similar and are able to 
+                    blend out that edge. I tried squaring the alpha mask to get an even faster falloff, only to blend out a niticky edge in the far back of the image on the wall that is semi-visible 
+                    in the other two blending methods. With the squaring method though, that edge is blended out well.
+                </p>
+            </div>
         </div>
     </main>
     <script src="../ascii-loader.js"></script>
