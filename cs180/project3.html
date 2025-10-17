@@ -742,7 +742,7 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                 <h4>Key Parameters:</h4>
                 <ul>
                     <li><strong>sigma:</strong> Controls the scale of the Gaussian smoothing applied before computing gradients. 
-                        I use <code>sigma=1</code> for single-scale detection as suggested in the project instructions.</li>
+                        I use <code>sigma=1</code> for single-scale detection as suggested in the project starter code.</li>
                     <li><strong>min_distance:</strong> Minimum distance between detected corners in pixels. This suppresses 
                         nearby corners to avoid clustering. I experimented with values of 10, 25, and 50 pixels.</li>
                     <li><strong>threshold_rel:</strong> Relative threshold for corner strength (as a fraction of the maximum 
@@ -791,7 +791,7 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                     The <strong>min_distance</strong> parameter controls spatial distribution: smaller values allow corners to 
                     cluster together, while larger values enforce more even spacing. The <strong>threshold_rel</strong> parameter 
                     controls quality: lower values include weaker corners, while higher values keep only the strongest features. 
-                    For the final pipeline, I use <code>min_distance=10</code> to detect many corners, then apply Adaptive 
+                    For the next part of the project (through part B.3), I use <code>min_distance=10</code> to detect many corners, then apply Adaptive 
                     Non-Maximal Suppression (ANMS) to select the best distributed subset.
                 </p>
 
@@ -1003,7 +1003,7 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
 
                 <div class="image-container">
                     <img src="project3/images/anms_descriptors_haste.jpg" alt="feature descriptors visualization haste">
-                    <div class="project-caption">Left: Haste street image with three ANMS corner points highlighted (blue, cyan,and magenta). Middle/Right: Their corresponding 8×8 feature descriptors shown as grayscale patches. The red point captures texture from foliage and building detail, the magenta point shows patterns from street infrastructure, and the green point captures texture from the building facade.</div>
+                    <div class="project-caption">Left: Haste street image with three ANMS corner points highlighted (blue, cyan, and magenta). Middle/Right: Their corresponding 8×8 feature descriptors shown as grayscale patches. The blue point captures texture from the bike wheel, the cyan point shows patterns from the street light, and the magenta point captures texture from the tree branches.</div>
                 </div>
 
                 <p>
@@ -1046,26 +1046,59 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                     there's a clear winner and we accept it.
                 </p>
 
-                <h4>Strategy 2: Mutual Nearest Neighbors</h4>
+                <h4>Strategy 2: Matching Direction - One-Directional vs. Two-Directional</h4>
                 <p>
-                    <strong>The Problem:</strong> One-way matching can create many-to-one correspondences. Multiple descriptors 
-                    from image 1 might all match the same descriptor in image 2.
+                    After applying Lowe's ratio test, we still need to decide how to establish correspondences between descriptors. 
+                    I implement both <strong>one-directional matching</strong> and <strong>two-directional (mutual) matching</strong>, 
+                    each with different trade-offs:
+                </p>
+
+                <h5>One-Directional Matching</h5>
+                <p>
+                    <strong>How it works:</strong> For each descriptor in image 1, find its nearest neighbor in image 2 (subject to ratio test). 
+                    This creates a set of matches from image 1 → image 2.
                 </p>
                 <p>
-                    <strong>Solution:</strong> Require <em>bidirectional agreement</em>. Only accept (A, B) as a match if:
+                    <strong>Trade-offs:</strong> This approach produces <em>more matches</em> but with potentially lower quality. 
+                    Multiple descriptors in image 1 can all match to the same descriptor in image 2 (many-to-one), and there's 
+                    no requirement for agreement in the reverse direction. Some matches may be asymmetric—descriptor A in image 1 
+                    matches to B in image 2, but B's best match is actually to some other descriptor C in image 1.
+                </p>
+
+                <h5>Two-Directional (Mutual) Matching</h5>
+                <p>
+                    <strong>How it works:</strong> Require <em>bidirectional agreement</em>. Only accept (A, B) as a match if:
                 </p>
                 <ul>
-                    <li>A's nearest neighbor in image 2 is B, <em>AND</em></li>
-                    <li>B's nearest neighbor in image 1 is A</li>
+                    <li>A's nearest neighbor in image 2 is B (passes ratio test), <em>AND</em></li>
+                    <li>B's nearest neighbor in image 1 is A (passes ratio test)</li>
                 </ul>
                 <p>
-                    This symmetry requirement is very powerful. False matches rarely satisfy both directions because accidental 
-                    similarity is unlikely to be reciprocal.
+                    <strong>Trade-offs:</strong> This symmetry requirement is very powerful—false matches rarely satisfy both 
+                    directions because accidental similarity is unlikely to be reciprocal. Two-directional matching produces 
+                    <em>fewer but higher-quality matches</em>. Each match is a true mutual nearest neighbor, eliminating most 
+                    asymmetric correspondences and many-to-one mappings.
+                </p>
+
+                <h5>When to Use Which Method</h5>
+                <p>
+                    For <strong>this section (B.3)</strong>, I use <strong>two-directional matching</strong> to demonstrate clean, 
+                    high-quality correspondences without downstream robust estimation. The mutual agreement ensures that the 
+                    visualized matches are highly reliable.
+                </p>
+                <p>
+                    However, when using <strong>RANSAC (section B.4)</strong>, I switch to <strong>one-directional matching</strong>. 
+                    Why? RANSAC is specifically designed to handle outliers robustly—it will automatically detect and discard 
+                    incorrect matches during homography estimation. By using one-directional matching, we feed more candidate matches 
+                    into RANSAC, giving it a larger pool of correspondences to work with. RANSAC's iterative sampling and consensus 
+                    mechanism will prune the outliers anyway, so we prioritize quantity over initial quality to improve the chances 
+                    of finding good inlier sets. This trade-off makes sense because RANSAC's strength is precisely its ability to 
+                    handle contaminated data.
                 </p>
 
                 <div class="code-container">
-                    <div class="code-title">Feature matching pseudocode</div>
-                    <pre><code>FUNCTION match_descriptors(descriptors_img1, descriptors_img2, ratio_threshold):
+                    <div class="code-title">Feature matching pseudocode (two-directional)</div>
+                    <pre><code>FUNCTION match_descriptors_two_sided(descriptors_img1, descriptors_img2, ratio_threshold):
 
     1. COMPUTE pairwise distances:
        - Flatten each 8×8 descriptor to 64-dimensional vector
@@ -1107,6 +1140,33 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
     RETURN list of matched pairs (i, j)</code></pre>
                 </div>
 
+                <div class="code-container">
+                    <div class="code-title">Feature matching pseudocode (one-directional)</div>
+                    <pre><code>FUNCTION match_descriptors_one_sided(descriptors_img1, descriptors_img2, ratio_threshold):
+
+    1. COMPUTE pairwise distances:
+       - Flatten each 8×8 descriptor to 64-dimensional vector
+       - Compute distance matrix D where D[i,j] = ||desc1[i] - desc2[j]||
+       - Use Euclidean distance in 64-dimensional space
+    
+    2. FIND left-to-right matches (image 1 → image 2):
+       - For each descriptor i in image 1:
+         a. Find two nearest neighbors in image 2:
+            - nn1 = descriptor with smallest distance to i
+            - nn2 = descriptor with second-smallest distance to i
+         
+         b. Apply Lowe's ratio test:
+            - ratio = distance(i, nn1) / distance(i, nn2)
+            - IF ratio < threshold (typically 0.8):
+                - Accept match: (i, nn1)
+            - ELSE:
+                - Reject (too ambiguous)
+    
+    3. RETURN all accepted matches
+       - Note: No bidirectional check, so multiple i's can match same j
+       - This produces more matches than two-sided matching</code></pre>
+                </div>
+
                 <h4>Why This Works:</h4>
                 <p>
                     <strong>Lowe's ratio test</strong> eliminates ambiguous matches. In repetitive regions (brick walls, windows), 
@@ -1115,38 +1175,44 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                     and we accept them.
                 </p>
                 <p>
-                    <strong>Mutual nearest neighbors</strong> eliminates asymmetric errors. Consider a textured region in image 1 
+                    <strong>Two-directional (mutual) matching</strong> eliminates asymmetric errors. Consider a textured region in image 1 
                     that's occluded in image 2. Descriptors from that region might match to <em>something</em> in image 2 
                     (one-way), but those image 2 descriptors have better matches elsewhere, so the match won't be mutual. 
                     Only true correspondences—the same physical point visible in both images—consistently produce mutual matches.
                 </p>
                 <p>
-                    <strong>Combined effect:</strong> The two filters work together beautifully. Ratio test removes ambiguous 
-                    matches (low-confidence). Mutual NN removes incorrect matches (mismatches). What remains is a high-quality 
-                    set of correspondences suitable for geometric estimation, though some outliers inevitably remain (handled by RANSAC).
+                    <strong>One-directional matching</strong> is more permissive, accepting any forward match that passes the ratio test. 
+                    While this introduces more false positives, it provides more candidates for downstream robust estimation algorithms 
+                    like RANSAC to work with.
+                </p>
+                <p>
+                    <strong>Combined effect:</strong> For the demonstrations in this section, the ratio test + two-directional matching 
+                    work together beautifully. Ratio test removes ambiguous matches (low-confidence), and mutual nearest neighbors 
+                    removes incorrect matches (mismatches). What remains is a high-quality set of correspondences. For RANSAC-based 
+                    workflows, using one-directional matching provides a larger candidate pool while RANSAC handles outlier rejection.
                 </p>
 
                 <h4>Effect of Ratio Threshold</h4>
                 <p>
-                    The ratio threshold controls the trade-off between match quantity and quality:
+                    The ratio threshold controls the trade-off between match quantity and quality. The following results 
+                    use <strong>two-directional matching</strong> to demonstrate clean correspondences:
                 </p>
 
                 <div class="image-container">
                     <img src="project3/images/anchor_matches.jpg" alt="feature matches with different thresholds">
-                    <div class="project-caption">Anchor house: Top row shows all ANMS corners detected (blue points). Middle row: Matches with ratio_threshold=1.0 (accepts all matches). Third row: Matches with ratio_threshold=0.8 (balanced). Bottom row: Matches with ratio_threshold=0.6 (very strict). Lower thresholds produce fewer but more reliable matches.</div>
+                    <div class="project-caption">Anchor house (two-directional matching): Top row shows all ANMS corners detected (blue points). Middle row: Matches with ratio_threshold=1.0 (accepts all matches). Third row: Matches with ratio_threshold=0.8 (balanced). Bottom row: Matches with ratio_threshold=0.6 (very strict). Lower thresholds produce fewer but more reliable matches.</div>
                 </div>
 
                 <div class="image-container">
                     <img src="project3/images/haste_matches.jpg" alt="feature matches haste with different thresholds">
-                    <div class="project-caption">Haste street: Top row shows all ANMS corners detected (blue points). Middle row: Matches with ratio_threshold=1.0. Third row: Matches with ratio_threshold=0.8. Bottom row: Matches with ratio_threshold=0.6. The Haste street scene has rich texture from buildings and foliage, producing many reliable matches even with stricter thresholds.</div>
+                    <div class="project-caption">Haste street (two-directional matching): Top row shows all ANMS corners detected (blue points). Middle row: Matches with ratio_threshold=1.0. Third row: Matches with ratio_threshold=0.8. Bottom row: Matches with ratio_threshold=0.6. The Haste street scene has rich texture from buildings and foliage, producing many reliable matches even with stricter thresholds.</div>
                 </div>
 
                 <p>
                     With <code>ratio_threshold=1.0</code>, we accept nearly all nearest neighbor matches, including many 
                     false positives from ambiguous or repetitive textures. With <code>ratio_threshold=0.6</code>, we get 
                     very high-quality matches but fewer overall. The default <code>ratio_threshold=0.8</code> provides a 
-                    good balance: enough matches for robust homography estimation while filtering most false positives. 
-                    RANSAC (next section) will handle any remaining outliers.
+                    good balance: enough matches for robust homography estimation while filtering most false positives.
                 </p>
             </div>
 
@@ -1157,6 +1223,13 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                     <strong>RANSAC (RANdom SAmple Consensus)</strong> is a robust estimation technique that can compute 
                     an accurate homography even when a significant fraction of matches are wrong. I implement 4-point 
                     RANSAC as described in class.
+                </p>
+                <p>
+                    <strong>Note on matching strategy:</strong> For all RANSAC-based results in this section, I use 
+                    <strong>one-directional matching</strong> instead of the two-directional matching shown in section B.3. 
+                    As explained earlier, one-directional matching provides more candidate correspondences for RANSAC to work with, 
+                    and RANSAC's robust estimation naturally filters out the additional outliers. This trade-off—more matches with 
+                    more outliers, but handled by RANSAC—produces better final results than starting with fewer, higher-quality matches.
                 </p>
 
                 <h3>RANSAC Algorithm Overview</h3>
@@ -1380,7 +1453,8 @@ img_mosaic[non_zero] = img_mosaic[non_zero] / weight_map[non_zero, np.newaxis]</
                 <h2>Good Automatic Stitching Results</h2>
                 <p>
                     After failure with the automatic stitching results on the part A images I used, I went out and took some more images 
-                    that have less sky and more interesting and non repetitive texture. I used these images to test the automatic stitching pipeline.
+                    that have less sky and more interesting and non repetitive texture. I used these images to test the automatic stitching pipeline. 
+                    I use the same parameters as in the last section for the automatic stitching pipeline.
                 </p>
                 <div class="image-container">
                     <img src="project3/images/college_haste_blended.jpg" alt="automatic glade stitching">
