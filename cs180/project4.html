@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project 4: Neural Radiance Fields</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+    
+    <!-- MathJax for mathematical equations -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+</head>
+<body>
+    <header>
+        <a href="../index.html" style="text-decoration: none;"><h1 class="site-title">Elizabeth Weaver</h1></a>
+        <nav>
+            <a href="../index.html" class="nav-gray">Home</a>
+            <a href="../projects.html" class="nav-dark">Projects</a>
+            <a href="../blog.html" class="nav-green">Blog</a>
+        </nav>
+    </header>
+
+    <div class="ascii-art"></div>
+
+    <div class="breadcrumb">
+        <a href="../projects.html">Projects</a> / <a href="index.html">CS180</a> / Project 4: Neural Radiance Fields
+    </div>
+
+    <main class="main-content projects with-breadcrumb">
+        <div class="profile-section">
+            <div class="project-header">
+                <h1>Project 4: Neural Radiance Fields</h1>
+                <p>
+                    In this project, I implement Neural Radiance Fields (NeRF), a powerful technique for synthesizing novel 
+                    views of complex 3D scenes from a set of 2D images. The project is divided into three main parts: first, 
+                    I calibrate a camera and capture a 3D object scan using ArUco markers; second, I build a neural field to 
+                    represent a 2D image as a warm-up; and finally, I implement a full NeRF model that learns to represent 
+                    3D scenes from multi-view images through volume rendering.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 0: Calibrating Your Camera and Capturing a 3D Scan</h2>
+                <p>
+                    Before building a NeRF, I need to capture my own 3D object data. This requires knowing the camera's 
+                    intrinsic parameters (focal length, principal point) and the camera poses (position and orientation) 
+                    for each image. I use ArUco markers—visual tracking targets that provide reliable 3D keypoints—to 
+                    accomplish both calibration and pose estimation.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 0.1: Camera Calibration</h2>
+                <p>
+                    Camera calibration determines the intrinsic parameters that describe how the camera projects 3D points 
+                    onto the 2D image plane. I captured 30 images of a grid of ArUco tags from various angles and distances, 
+                    keeping the zoom constant throughout. The calibration process involves:
+                </p>
+                <ol>
+                    <li>Detecting ArUco tags in each image using an ArUco marker detection algorithm</li>
+                    <li>Extracting corner coordinates from detected tags</li>
+                    <li>Defining corresponding 3D world coordinates (tag corners in physical space)</li>
+                    <li>Using a camera calibration algorithm to compute intrinsics and distortion coefficients</li>
+                </ol>
+
+                <h3>Implementation Details</h3>
+                <p>
+                    The ArUco tags are arranged in a 3×2 grid with specific spacing. Each tag is 60mm × 60mm, with 90mm 
+                    horizontal spacing and 75.67mm vertical spacing. I implemented <code>get_tag_world_coords()</code> to 
+                    compute the 3D coordinates of each tag's corners based on its ID:
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Computing tag world coordinates (pseudocode)</div>
+                    <pre><code>Algorithm: Compute 3D World Coordinates for ArUco Tag
+
+Input: tag ID number, physical tag size in meters
+Output: 4 corner points in 3D world space
+
+Steps:
+1. Determine grid position of tag
+   - Calculate which row and column the tag occupies in 3×2 grid
+   
+2. Define spacing constants
+   - Horizontal spacing between tags: 90mm
+   - Vertical spacing between tags: 75.67mm
+   
+3. Calculate offset for this specific tag
+   - X offset depends on column position
+   - Y offset depends on row position
+   
+4. Generate four corner coordinates
+   - Top left corner at (x_offset, y_offset, 0)
+   - Top right corner offset by tag size in x direction
+   - Bottom right corner offset by tag size in both directions
+   - Bottom left corner offset by tag size in y direction
+   - All corners lie on z=0 plane (flat on table)</code></pre>
+                </div>
+
+                <h3>Calibration Results</h3>
+                <p>
+                    After processing all 30 calibration images, the camera calibration algorithm successfully computed 
+                    the camera intrinsic matrix and distortion coefficients:
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Camera Intrinsics (Example Output)</div>
+                    <pre><code>Camera Intrinsic Matrix Structure:
+- Focal length in x and y directions (approximately 4100 pixels)
+- Principal point near image center (around 3141, 2284)
+- Standard 3×3 homogeneous coordinate representation
+
+Distortion Coefficients:
+- Radial distortion parameters (k1, k2, k3)
+- Tangential distortion parameters (p1, p2)
+- Compensate for lens barrel/pincushion effects
+
+Quality Metric:
+- Average reprojection error: ~2 pixels
+- This measures how accurately the model projects 3D points back to 2D
+- Lower error indicates better calibration</code></pre>
+                </div>
+
+                <p>
+                    The intrinsic matrix reveals a focal length of approximately 4100 pixels and a principal point near 
+                    the center of the image (around 3141, 2284). The reprojection error of 1.91 pixels indicates good 
+                    calibration quality—on average, the detected corners and reprojected corners differ by less than 2 pixels.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 0.2: Capturing a 3D Object Scan</h2>
+                <p>
+                    With the camera calibrated, I captured 50 images of a toy dragon figurine placed next to a single ArUco 
+                    marker. The key requirements for good NeRF results:
+                </p>
+                <ul>
+                    <li>Consistent lighting and exposure across all images</li>
+                    <li>Sharp, blur-free images</li>
+                    <li>Varying camera angles (horizontally and vertically)</li>
+                    <li>Uniform distance from the object (10-20cm, filling ~50% of frame)</li>
+                    <li>Using the same camera and zoom level as calibration</li>
+                </ul>
+
+                <p>
+                    I captured images by moving around the dragon while keeping it and the ArUco marker in view. The ArUco 
+                    marker serves as a coordinate system reference, allowing me to determine where each camera was positioned.
+                    Although I used the page with 6 ArUco markers, I only used tag 0 for the pose estimation.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 0.3: Estimating Camera Pose</h2>
+                <p>
+                    With calibrated intrinsics, I can now estimate the camera pose for each image using the Perspective-n-Point 
+                    (PnP) algorithm. Given the 3D coordinates of the ArUco tag corners and their 2D projections in the image, 
+                    the PnP solver computes the camera's rotation and translation.
+                </p>
+
+                <h3>Mathematical Foundation</h3>
+                <p>
+                    The relationship between world coordinates \(\mathbf{x}_w\) and camera coordinates \(\mathbf{x}_c\) 
+                    is given by:
+                </p>
+                $$\begin{bmatrix} x_c \\ y_c \\ z_c \\ 1 \end{bmatrix} = 
+                \begin{bmatrix} R & t \\ 0 & 1 \end{bmatrix}
+                \begin{bmatrix} x_w \\ y_w \\ z_w \\ 1 \end{bmatrix}$$
+                <p>
+                    where \(R\) is the 3×3 rotation matrix and \(t\) is the translation vector. The matrix 
+                    \([R | t]\) is called the world-to-camera (w2c) or extrinsic matrix.
+                </p>
+
+                <p>
+                    OpenCV's <code>solvePnP()</code> returns the w2c transformation. For NeRF, we need the inverse 
+                    camera-to-world (c2w) transformation, which describes the camera's position and orientation in 
+                    world space:
+                </p>
+                $$c2w = \begin{bmatrix} R^T & -R^T t \\ 0 & 1 \end{bmatrix}$$
+
+                <div class="code-container">
+                    <div class="code-title">Pose estimation algorithm (pseudocode)</div>
+                    <pre><code>Algorithm: Estimate Camera Pose from ArUco Tags
+
+Input: Collection of images, camera intrinsics, distortion coefficients, tag size
+Output: Camera-to-world transformation matrix for each image
+
+For each image:
+    Step 1: Detect ArUco markers
+        - Find all visible tags in the image
+        - Extract 2D pixel coordinates of tag corners
+    
+    Step 2: Identify reference tag
+        - Locate the tag designated as world origin
+        - Extract its four corner coordinates
+    
+    Step 3: Define world coordinates
+        - Set reference tag corners at known 3D positions
+        - Top left at world origin (0,0,0)
+        - Other corners offset by physical tag size
+        - All corners on z=0 plane
+    
+    Step 4: Solve Perspective-n-Point problem
+        - Input: 3D world points and corresponding 2D image points
+        - Output: Camera rotation and translation relative to world
+        - Uses camera intrinsics and distortion model
+    
+    Step 5: Convert to camera-to-world transformation
+        - Invert the world-to-camera relationship
+        - Rotation: Take transpose of rotation matrix
+        - Translation: Negate and rotate translation vector
+        - Construct 4×4 homogeneous transformation matrix
+    
+    Return transformation describing camera position and orientation</code></pre>
+                </div>
+
+                <h3>Visualization Results</h3>
+                <p>
+                    I successfully estimated poses for all 50 dragon images. Using the <code>viser</code> library, I 
+                    visualized the camera frustums in 3D space. Each frustum shows the camera's position, orientation, 
+                    and the captured image:
+                </p>
+
+                <div class="image-container">
+                    <img src="project4/images/viser_images/dragon_viser1.png" alt="Dragon cameras view 1">
+                    <div class="project-caption">Visualization of estimated camera poses for the dragon dataset (view 1). Each colored frustum represents a camera position with its captured image.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project4/images/viser_images/dragon_viser2.png" alt="Dragon cameras view 2">
+                    <div class="project-caption">Alternative view of the camera cloud showing the variety of angles captured around the dragon.</div>
+                </div>
+
+                <p>
+                    The visualization confirms that I captured images from diverse angles around the object, which is 
+                    essential for training a high-quality NeRF. The cameras form a rough hemisphere around the dragon, 
+                    with good coverage from multiple viewpoints.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 0.4: Undistorting Images and Creating a Dataset</h2>
+                <p>
+                    Real camera lenses introduce distortion (barrel or pincushion effects). Since NeRF assumes a perfect 
+                    pinhole camera model, I need to undistort all images using an image undistortion algorithm with the 
+                    calibrated distortion coefficients.
+                </p>
+
+                <h3>Handling Black Boundaries</h3>
+                <p>
+                    Undistortion can create black borders where the undistorted image maps to pixels outside the original 
+                    frame. I used an optimization algorithm with parameter <code>alpha=0</code> to crop these 
+                    invalid regions and compute an updated intrinsic matrix that accounts for the crop:
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Image undistortion algorithm (pseudocode)</div>
+                    <pre><code>Algorithm: Undistort Images and Handle Black Borders
+
+Input: Original images, camera intrinsics, distortion coefficients
+Output: Undistorted images, updated camera matrix
+
+Step 1: Determine optimal cropping
+    - Calculate which pixels will be valid after undistortion
+    - Find region of interest that contains no black borders
+    - Compute updated camera matrix accounting for crop
+
+Step 2: Process each image
+    For every image in the collection:
+        a) Apply lens undistortion
+           - Use camera intrinsics and distortion parameters
+           - Remap each pixel to remove barrel/pincushion effects
+           - Result may have black borders at edges
+        
+        b) Crop to valid region
+           - Remove pixels that map outside original frame
+           - Keep only the rectangular region with valid data
+        
+        c) Store undistorted, cropped image
+
+Step 3: Update camera intrinsics
+    - Adjust principal point coordinates
+    - Account for pixels removed by cropping
+    - Subtract crop offset from cx and cy values
+    - Maintains correct projection after crop
+
+Return processed images and corrected camera matrix</code></pre>
+                </div>
+
+                <!-- TODO: Add undistortion comparison images -->
+                <!-- <div class="image-container">
+                    <img src="project4/images/undistortion_comparison.png" alt="Undistortion comparison">
+                    <div class="project-caption">Comparison of original (top) and undistorted (bottom) images. The undistorted images have straighter lines and remove lens distortion artifacts.</div>
+                </div> -->
+
+                <h3>Creating the Dataset</h3>
+                <p>
+                    Finally, I packaged everything into a <code>.npz</code> file for training. I split the data into 90% 
+                    training (45 images) and 10% validation (5 images):
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Dataset creation (pseudocode)</div>
+                    <pre><code>Algorithm: Package Data for NeRF Training
+
+Split dataset into training and validation sets (90%/10%)
+
+Save to file with following components:
+    - Training images: RGB images for learning scene representation
+    - Training camera poses: 4×4 transformation matrices for each training view
+    - Validation images: Hold-out set for evaluating quality during training
+    - Validation camera poses: Corresponding transformations for validation views
+    - Focal length: Camera intrinsic parameter (assumes fx = fy)
+
+Images stored in 0-255 range (will be normalized to 0-1 during training)
+Camera poses describe position and orientation of each viewpoint
+All data packaged in single compressed file for easy loading</code></pre>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1: Fit a Neural Field to a 2D Image</h2>
+                <p>
+                    Before tackling 3D NeRF, I start with a simpler 2D problem: representing an image as a neural field. 
+                    The idea is to train a multilayer perceptron (MLP) that takes 2D pixel coordinates \((x, y)\) as input 
+                    and outputs RGB color values \((r, g, b)\). This teaches us the fundamentals of coordinate-based 
+                    neural representations.
+                </p>
+
+                <h3>Network Architecture</h3>
+                <p>
+                    I implemented an MLP with the following structure:
+                </p>
+                <ul>
+                    <li><strong>Input:</strong> 2D coordinates \((x, y)\) normalized to [0,1]</li>
+                    <li><strong>Positional Encoding:</strong> Expand coordinates using sinusoidal functions</li>
+                    <li><strong>Hidden Layers:</strong> 3 fully-connected layers with ReLU activations</li>
+                    <li><strong>Output:</strong> 3 RGB values passed through sigmoid to constrain to [0,1]</li>
+                </ul>
+
+                <h4>Sinusoidal Positional Encoding</h4>
+                <p>
+                    Plain MLPs struggle to learn high-frequency details. Positional encoding (PE) addresses this by 
+                    mapping the input coordinates to a higher-dimensional space using sinusoidal functions:
+                </p>
+                $$\text{PE}(p, L) = [p, \sin(2^0 \pi p), \cos(2^0 \pi p), ..., \sin(2^{L-1} \pi p), \cos(2^{L-1} \pi p)]$$
+                <p>
+                    where \(L\) is the maximum frequency level. With \(L=10\), a 2D coordinate becomes a 
+                    \(2 + 2 \times 2L = 42\) dimensional vector.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">MLP network with positional encoding (high-level)</div>
+                    <pre><code>Neural Network Architecture for 2D Image Representation
+
+Network Structure:
+    Input: 2D pixel coordinates (x, y) normalized to [0,1]
+    Hidden: 3 fully-connected layers with ReLU activations
+    Output: 3 RGB color values passed through sigmoid
+    Width: Configurable (typically 128-256 neurons per layer)
+
+Positional Encoding Process:
+    Purpose: Enable network to learn high-frequency details
+    
+    Transform 2D coordinate into higher-dimensional representation:
+        - Keep original x and y values
+        - Add sine and cosine at multiple frequency levels
+        - Each frequency level i uses: 2^i × π as multiplier
+        - Typical: 10 frequency levels (L=10)
+        - Result: 2D input becomes 42D encoded vector
+    
+    Mathematical form: [x, y, sin(x), cos(x), sin(2x), cos(2x), ..., sin(512x), cos(512x)]
+
+Forward Pass:
+    1. Apply positional encoding to input coordinates
+    2. Pass through first hidden layer with ReLU activation
+    3. Pass through second hidden layer with ReLU activation
+    4. Pass through third hidden layer with ReLU activation
+    5. Generate 3 color values (R, G, B)
+    6. Apply sigmoid to constrain outputs to [0, 1] range
+    7. Return predicted color for input coordinate</code></pre>
+                </div>
+
+                <h3>Training Setup</h3>
+                <p>
+                    I trained the model using:
+                </p>
+                <ul>
+                    <li><strong>Loss Function:</strong> Mean Squared Error (MSE) between predicted and ground-truth colors</li>
+                    <li><strong>Optimizer:</strong> Adam with learning rate 1e-2</li>
+                    <li><strong>Batch Size:</strong> 10,000 randomly sampled pixels per iteration</li>
+                    <li><strong>Iterations:</strong> 2,000</li>
+                    <li><strong>Metric:</strong> Peak Signal-to-Noise Ratio (PSNR) = \(10 \log_{10}(1 / \text{MSE})\)</li>
+                </ul>
+
+                <h3>Results: Fox Image</h3>
+                
+                <div class="image-container">
+                    <img src="project4/images/fox_L5_hidden128_reconstructions_along_training.jpg" alt="Fox training progression">
+                    <div class="project-caption">Training progression for fox image with L=5 and hidden_dim=128. From left to right: iterations 0, 500, 1000, and 1999. The network progressively learns to represent fine details.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project4/images/fox_all_final_images.jpg" alt="Fox reconstruction results">
+                    <div class="project-caption">Final reconstruction results for the fox image with different hyperparameters. Rows vary frequency level L (1, 5, 10, 20), columns vary network width (32, 128, 256 neurons).</div>
+                </div>
+
+                <p>
+                    The hyperparameter sweep reveals important trends:
+                </p>
+                <ul>
+                    <li><strong>Low frequency (L=1):</strong> Blurry results, cannot capture fine details regardless of network width</li>
+                    <li><strong>Medium frequency (L=5, 10):</strong> Good balance, captures both structure and details</li>
+                    <li><strong>High frequency (L=20):</strong> Can represent fine details but may overfit</li>
+                    <li><strong>Network width:</strong> Wider networks (256) generally perform better, especially with higher frequencies</li>
+                </ul>
+
+                <div class="image-container">
+                    <img src="project4/images/fox_all_psnrs_side_by_side.jpg" alt="Fox PSNR curves">
+                    <div class="project-caption">PSNR curves during training. Higher frequencies and wider networks achieve higher PSNR. Left: normal scale, Right: log scale showing convergence behavior.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project4/images/fox_all_losses_side_by_side.jpg" alt="Fox loss curves">
+                    <div class="project-caption">Training loss curves. All configurations converge, but higher L and wider networks reach lower loss values.</div>
+                </div>
+
+                <h3>Results: Loki Image</h3>
+                <p>
+                    I tested the same approach on a second image (my cat Loki) to verify generalization:
+                </p>
+
+                <div class="image-container">
+                    <img src="project4/images/loki_L5_hidden128_reconstructions_along_training.jpg" alt="Loki training progression">
+                    <div class="project-caption">Training progression for Loki image with L=5 and hidden_dim=128. From left to right: iterations 0, 500, 1000, and 1999. The network learns to capture Loki's features and the complex background.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project4/images/loki_all_final_images.jpg" alt="Loki reconstruction results">
+                    <div class="project-caption">Reconstruction results for the Loki image with varying L (1, 5, 10) and hidden dimensions (32, 128, 256).</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project4/images/loki_all_psnrs_side_by_side.jpg" alt="Loki PSNR curves">
+                    <div class="project-caption">PSNR curves for Loki image reconstruction showing similar trends to the fox image.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project4/images/loki_all_losses_side_by_side.jpg" alt="Loki loss curves">
+                    <div class="project-caption">Training loss for Loki image across different configurations.</div>
+                </div>
+
+                <p>
+                    The Loki results confirm the patterns observed with the fox image. The best configuration 
+                    (L=10, hidden_dim=256) achieves a PSNR of ~19.5 dB, demonstrating that the neural field approach 
+                    successfully represents diverse image content.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2: Fit a Neural Radiance Field from Multi-view Images</h2>
+                <p>
+                    Now I extend the 2D neural field to 3D by implementing a full Neural Radiance Field (NeRF). 
+                    Instead of mapping 2D coordinates to colors, NeRF maps 3D positions and viewing directions to 
+                    color and density, enabling novel view synthesis from multi-view images.
+                </p>
+
+                <p>
+                    I train on the Lego scene from the original NeRF paper, using 100 training images and 10 validation 
+                    images at 200×200 resolution.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2.1: Create Rays from Cameras</h2>
+                <p>
+                    The first step is converting pixel coordinates into 3D rays in world space. Each ray is defined 
+                    by an origin \(\mathbf{o}\) and direction \(\mathbf{d}\).
+                </p>
+
+                <h3>1. Camera to World Transform</h3>
+                <p>
+                    Given a camera-to-world matrix \(c2w\) and a point \(\mathbf{x}_c\) in camera coordinates, the 
+                    world coordinates are:
+                </p>
+                $$\mathbf{x}_w = c2w \cdot \mathbf{x}_c$$
+
+                <div class="code-container">
+                    <div class="code-title">Camera to world transformation (high-level)</div>
+                    <pre><code>Algorithm: Transform Points from Camera to World Coordinates
+
+Input: Camera-to-world transformation matrices, points in camera space
+Output: Same points expressed in world coordinates
+
+Process:
+    Step 1: Convert to homogeneous coordinates
+        - Add fourth component (w=1) to each 3D point
+        - Enables matrix multiplication for transformations
+        - Changes 3D point to 4D homogeneous representation
+    
+    Step 2: Apply transformation
+        - Multiply c2w matrix with homogeneous point
+        - Rotation component affects first 3 dimensions
+        - Translation component shifts the point
+        - Result is 4D homogeneous point in world space
+    
+    Step 3: Convert back to Cartesian coordinates
+        - Divide first three components by fourth component (w)
+        - Normalizes the homogeneous representation
+        - Produces standard 3D world coordinates
+    
+Purpose: Maps any point from camera's local frame of reference to global world frame</code></pre>
+                </div>
+
+                <h3>2. Pixel to Camera Transform</h3>
+                <p>
+                    Given the intrinsic matrix \(K\) and pixel coordinates \((u, v)\), we can compute camera coordinates 
+                    at depth \(s=1\):
+                </p>
+                $$K = \begin{bmatrix} f & 0 & c_x \\ 0 & f & c_y \\ 0 & 0 & 1 \end{bmatrix}$$
+                $$\mathbf{x}_c = K^{-1} \begin{bmatrix} u \\ v \\ 1 \end{bmatrix}$$
+
+                <div class="code-container">
+                    <div class="code-title">Pixel to camera transformation (high-level)</div>
+                    <pre><code>Algorithm: Project Pixel Coordinates to Camera Space
+
+Input: Camera intrinsic matrix, 2D pixel coordinates
+Output: 3D points in camera coordinate system (at depth = 1)
+
+The intrinsic matrix K encodes:
+    - Focal lengths (how strongly the camera "zooms")
+    - Principal point (where optical axis meets image plane)
+    - Mapping from 3D camera space to 2D pixel space
+
+To reverse this projection:
+    Step 1: Prepare inverse intrinsic matrix
+        - Compute K^(-1) which undoes the projection
+        - Inverts the focal length and principal point effects
+    
+    Step 2: Add homogeneous coordinate
+        - Extend pixel (u, v) to (u, v, 1)
+        - Third coordinate enables matrix math
+    
+    Step 3: Apply inverse projection
+        - Multiply K^(-1) by homogeneous pixel coordinates
+        - Produces ray direction in camera space
+        - Result: 3D point at unit depth along viewing ray
+    
+Result represents where pixel maps to on plane at distance 1 from camera</code></pre>
+                </div>
+
+                <h3>3. Pixel to Ray</h3>
+                <p>
+                    The ray origin is simply the camera position: \(\mathbf{o} = c2w[:3, 3]\). To find the direction, 
+                    I compute a point along the ray at depth 1, transform it to world space, and normalize:
+                </p>
+                $$\mathbf{d} = \frac{\text{world\_point} - \mathbf{o}}{|\text{world\_point} - \mathbf{o}|}$$
+
+                <div class="code-container">
+                    <div class="code-title">Pixel to ray conversion (high-level)</div>
+                    <pre><code>Algorithm: Convert Pixel to 3D Ray in World Space
+
+Input: Camera intrinsics, camera pose, pixel coordinates
+Output: Ray origin and direction for each pixel
+
+A ray represents the path light takes from a 3D point to the pixel.
+For rendering, we reverse this: cast ray from pixel into the scene.
+
+Process for each pixel:
+    
+    Step 1: Determine ray origin
+        - Extract camera position from transformation matrix
+        - For pinhole camera, all rays start at camera center
+        - This is the translation component of c2w matrix
+    
+    Step 2: Find point on viewing ray
+        - Use inverse projection to get camera-space point
+        - Choose arbitrary depth (typically depth = 1)
+        - Gives direction of ray in camera's local coordinates
+    
+    Step 3: Transform to world coordinates
+        - Apply camera-to-world transformation
+        - Rotates and translates from camera frame to world frame
+        - Now have world-space point along the ray
+    
+    Step 4: Compute ray direction
+        - Subtract origin from world point
+        - Gives vector pointing from camera into scene
+        - Normalize to unit length for consistent parameterization
+    
+Output: 
+    - Origin: 3D position of camera in world
+    - Direction: Unit vector pointing toward scene point</code></pre>
+                </div>
+
+                <p>
+                    <strong>Important detail:</strong> I add 0.5 to pixel coordinates to sample from pixel centers 
+                    rather than corners, which improves reconstruction quality.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2.2: Sampling Points Along Rays</h2>
+                <p>
+                    To evaluate the NeRF network, I need to sample 3D points along each ray. I use stratified sampling 
+                    with perturbation to ensure comprehensive coverage during training.
+                </p>
+
+                <h3>Stratified Sampling</h3>
+                <p>
+                    I divide the ray segment \([near, far]\) into \(N\) bins and sample uniformly within each bin:
+                </p>
+                $$t_i = near + \frac{i}{N}(far - near) + \text{rand}() \cdot \frac{far - near}{N}$$
+                <p>
+                    The random perturbation ensures that every point along the ray is eventually sampled during training, 
+                    preventing the network from overfitting to a fixed set of points.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Sampling points along rays (high-level)</div>
+                    <pre><code>Algorithm: Sample 3D Points Along Each Ray
+
+Input: Ray origins, ray directions, depth range, number of samples
+Output: 3D coordinates of sample points
+
+Purpose: Discretize continuous ray into finite set of query points for network
+
+Sampling Strategy:
+    
+    Base Approach - Uniform Stratified Sampling:
+        - Divide depth range [near, far] into equal intervals
+        - Place one sample point in each interval
+        - Initially at regular spacing (deterministic)
+    
+    With Perturbation (during training):
+        - Add random offset within each interval
+        - Prevents network from memorizing fixed locations
+        - Ensures all depths along ray eventually sampled
+        - Critical for continuous scene representation
+    
+    Without Perturbation (during inference):
+        - Use same regular spacing for all rays
+        - Provides consistent, predictable sampling
+        - Better for final rendering quality
+    
+    Point Computation:
+        For each sample:
+            - Start at ray origin
+            - Move along ray direction
+            - Travel distance determined by sample depth
+            - Compute: point = origin + direction × depth
+    
+Example: For near=2, far=6, n_samples=64:
+    - Sample at depths: 2.0, 2.0625, 2.125, ..., 5.9375, 6.0
+    - Each sample ~0.0625 units apart
+    - With perturbation: each jittered within its interval</code></pre>
+                </div>
+
+                <p>
+                    For the Lego scene, I use <code>near=2.0</code>, <code>far=6.0</code>, and <code>n_samples=64</code>, 
+                    which provides good coverage of the scene's bounding volume.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2.3: Putting the Dataloading All Together</h2>
+                <p>
+                    I implemented a <code>RaysData</code> class that precomputes all rays from all images and provides 
+                    efficient random sampling during training:
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Ray dataset structure (high-level)</div>
+                    <pre><code>Data Structure: Efficient Ray Storage and Sampling
+
+Purpose: Precompute and store all rays from training images for fast access
+
+Initialization Phase:
+    Input: Training images, camera poses, focal length
+    
+    Process:
+        1. For each image in dataset:
+            - Generate pixel grid coordinates
+            - Add 0.5 offset for pixel centers
+            - Convert each pixel to a ray using camera pose
+        
+        2. Store all computed rays:
+            - Ray origins: 3D positions where rays start
+            - Ray directions: Unit vectors pointing into scene
+            - Pixel colors: Ground truth RGB values
+            - Total: millions of rays (e.g., 100 images × 200×200 pixels = 4M rays)
+    
+    Benefit: Compute once, reuse many times during training
+
+Sampling Phase:
+    Input: Number of rays needed for training batch
+    
+    Process:
+        - Randomly select subset of rays from precomputed collection
+        - Sample without replacement for diversity
+        - Returns ray origins, directions, and target colors
+    
+    Benefit: Training can quickly grab random rays from any image
+            Avoids expensive recomputation at each iteration
+            Enables efficient mini-batch gradient descent
+    
+Typical Usage:
+    - Sample 10,000 rays per training iteration
+    - Rays come from different images and locations
+    - Network never sees all rays at once (would exceed memory)</code></pre>
+                </div>
+
+                <h3>Visualization</h3>
+                <p>
+                    I verified the implementation by visualizing cameras, rays, and sample points using Viser. This 
+                    confirms that rays originate from camera positions and sample points lie along the rays within 
+                    the scene bounds:
+                </p>
+
+                <div class="image-container">
+                    <img src="project4/images/viser_images/lego_viser_image.png" alt="Rays and samples visualization">
+                    <div class="project-caption">Visualization of 100 randomly sampled rays (black lines) and their sample points (black dots) among the training cameras. The rays correctly originate from camera centers and extend through the scene.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project4/images/viser_images/lego_viser_one_image_rays.png" alt="Rays from a single camera">
+                    <div class="project-caption">Detailed view showing rays sampled from a single camera. This verifies that all rays stay within the camera frustum and sample points are distributed along each ray between near and far planes.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2.4: Neural Radiance Field Network</h2>
+                <p>
+                    The NeRF network maps 3D positions \(\mathbf{x}\) and viewing directions \(\mathbf{d}\) to RGB 
+                    color and volume density \(\sigma\). The key insight is that density should be view-independent 
+                    (geometry is the same from all angles), while color can vary with viewing direction (for 
+                    view-dependent effects like specularities).
+                </p>
+
+                <h3>Architecture Design</h3>
+                <p>
+                    My implementation follows the paper with some simplifications:
+                </p>
+                <ul>
+                    <li><strong>Input:</strong> 3D position \(\mathbf{x}\) with PE (L=10) and direction \(\mathbf{d}\) with PE (L=4)</li>
+                    <li><strong>8 fully-connected layers</strong> of width 256 with ReLU activations</li>
+                    <li><strong>Skip connection:</strong> Concatenate input at layer 5 to preserve information</li>
+                    <li><strong>Density output:</strong> After layer 8, predict \(\sigma\) with ReLU (non-negative)</li>
+                    <li><strong>Color output:</strong> Condition on viewing direction in final layers, output with sigmoid</li>
+                </ul>
+
+                <div class="code-container">
+                    <div class="code-title">NeRF network architecture (high-level)</div>
+                    <pre><code>Neural Radiance Field Network Design
+
+Inputs:
+    - 3D position (x, y, z): Location in world space
+    - Viewing direction (θ, φ): Angle from which point is observed
+
+Outputs:
+    - RGB color: Appearance of point from given direction
+    - Volume density: How much matter exists at this location
+
+Key Design Principles:
+    1. Density is view-independent (geometry stays fixed)
+    2. Color is view-dependent (allows specular reflections)
+    3. Deep network needed for 3D (8 layers vs 3 for 2D)
+    4. Skip connection prevents gradient degradation
+
+Network Architecture:
+
+Phase 1 - Process Position (Layers 1-4):
+    - Apply high-frequency positional encoding (L=10)
+    - Transform 3D coordinates to 63-dimensional representation
+    - Pass through 4 fully-connected layers with ReLU
+    - Each layer has 256 hidden units
+    - Learns spatial geometry and structure
+
+Phase 2 - Skip Connection + Refinement (Layer 5):
+    - Concatenate current features with original encoded position
+    - Prevents "forgetting" the input coordinates
+    - Critical for deep networks to maintain spatial information
+    - Continue through 3 more layers (6-8)
+
+Phase 3 - Predict Density:
+    - Single output neuron predicts volume density σ
+    - ReLU ensures non-negative (density cannot be negative)
+    - Uses features before view direction is considered
+    - Represents view-independent geometry
+
+Phase 4 - Predict Color:
+    - Apply low-frequency encoding to viewing direction (L=4)
+    - Transform direction to 27-dimensional representation
+    - Concatenate with position features
+    - Pass through 2 more layers
+    - Output 3 RGB values through sigmoid [0,1]
+    - Represents view-dependent appearance
+
+Why This Design Works:
+    - Separating density/color allows view-dependent effects
+    - High-frequency position encoding captures fine detail
+    - Low-frequency direction encoding captures smooth lighting
+    - Skip connection enables 8-layer depth without degradation</code></pre>
+                </div>
+
+                <p>
+                    The skip connection at layer 5 is crucial for deep networks—it allows gradient flow and helps 
+                    the network retain the input coordinates through many layers. The separate treatment of position 
+                    and direction enables view-dependent appearance modeling.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2.5: Volume Rendering</h2>
+                <p>
+                    Volume rendering is the key technique that converts NeRF's point predictions into pixel colors. 
+                    The idea is to integrate color and density along each ray.
+                </p>
+
+                <h3>Mathematical Formulation</h3>
+                <p>
+                    The continuous rendering equation is:
+                </p>
+                $$C(\mathbf{r}) = \int_{t_n}^{t_f} T(t) \cdot \sigma(\mathbf{r}(t)) \cdot \mathbf{c}(\mathbf{r}(t), \mathbf{d}) \, dt$$
+                <p>
+                    where \(T(t) = \exp\left(-\int_{t_n}^{t} \sigma(\mathbf{r}(s)) \, ds\right)\) is the transmittance 
+                    (probability the ray reaches depth \(t\) without hitting anything).
+                </p>
+
+                <h3>Discrete Approximation</h3>
+                <p>
+                    In practice, we use discrete samples with small steps \(\delta_i = t_{i+1} - t_i\):
+                </p>
+                $$C = \sum_{i=1}^{N} T_i \cdot (1 - \exp(-\sigma_i \delta_i)) \cdot \mathbf{c}_i$$
+                $$T_i = \prod_{j=1}^{i-1} \exp(-\sigma_j \delta_j)$$
+
+                <div class="code-container">
+                    <div class="code-title">Volume rendering algorithm (high-level)</div>
+                    <pre><code>Algorithm: Composite Colors Along Ray via Volume Rendering
+
+Input: Density and color at sampled points along ray
+Output: Final pixel color
+
+The Physical Model:
+    A ray travels through space, potentially hitting particles
+    At each point: density determines probability of interaction
+    If ray hits particle: contributes that particle's color
+    Must account for: ray may have already terminated earlier
+
+The Discrete Approximation:
+    
+    Step 1: Compute interval distances
+        - Calculate distance between consecutive sample points
+        - Last interval extends to infinity (large value)
+        - Represents physical spacing along ray
+    
+    Step 2: Calculate alpha (termination probability)
+        - For each interval: α = 1 - exp(-σ × δ)
+        - σ: volume density at point
+        - δ: distance traveled through interval
+        - Higher density → higher chance of termination
+        - Formula derived from Beer-Lambert law
+    
+    Step 3: Compute transmittance (survival probability)
+        - Probability ray reaches each point without terminating
+        - T_i = product of (1 - α_j) for all j before i
+        - Use cumulative product operation for efficiency
+        - Add small epsilon to prevent numerical underflow
+    
+    Step 4: Calculate contribution weights
+        - Weight = T_i × α_i for each sample
+        - T_i: probability of reaching this sample
+        - α_i: probability of terminating at this sample
+        - Weight represents this sample's influence on final color
+    
+    Step 5: Composite final color
+        - Sum: weight_i × color_i for all samples
+        - Weighted average of all colors along ray
+        - Samples closer to camera with high density dominate
+        - Distant samples contribute less (attenuated by transmittance)
+
+Intuition: Early high-density points "block" later points from contributing,
+          just like objects in front occlude objects behind in real scenes</code></pre>
+                </div>
+
+                <p>
+                    The implementation uses a cumulative product operation to efficiently compute transmittance as the 
+                    cumulative product of \((1 - \alpha)\) values. The small epsilon (1e-10) prevents numerical 
+                    instability from multiplying many small numbers.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2.5: Training and Results on Lego Scene</h2>
+                <p>
+                    I trained the NeRF model on the Lego scene with the following configuration:
+                </p>
+                <ul>
+                    <li><strong>Iterations:</strong> 1,000</li>
+                    <li><strong>Batch size:</strong> 10,000 rays per iteration</li>
+                    <li><strong>Optimizer:</strong> Adam with learning rate 5e-4</li>
+                    <li><strong>Network:</strong> 8 layers, 256 hidden units, L_pos=10, L_dir=4</li>
+                    <li><strong>Sampling:</strong> 64 samples per ray, near=2.0, far=6.0</li>
+                </ul>
+
+                <h3>Training Progression</h3>
+                <div class="image-container">
+                    <img src="project4/images/lego_nerf_images/lego_renders_1000iter.jpg" alt="Lego training progression">
+                    <div class="project-caption">Novel view rendering at iterations 0, 200, 400, 600, and 1000. The model progressively learns the 3D structure and appearance of the Lego bulldozer.</div>
+                </div>
+
+                <p>
+                    The progression shows how NeRF learns:
+                </p>
+                <ul>
+                    <li><strong>Iteration 0:</strong> Random initialization produces noise</li>
+                    <li><strong>Iteration 200:</strong> Rough shape emerges, colors appear</li>
+                    <li><strong>Iteration 400:</strong> Structure becomes clearer, details forming</li>
+                    <li><strong>Iteration 600:</strong> Fine details visible, good color accuracy</li>
+                    <li><strong>Iteration 1000:</strong> High-quality rendering with sharp edges</li>
+                </ul>
+
+                <h3>Training Metrics</h3>
+                <div class="image-container">
+                    <img src="project4/images/lego_nerf_images/1k_iter_psnr.png" alt="Training metrics">
+                    <div class="project-caption">Validation PSNR over 1000 iterations of training. The metric increases from ~11 dB to ~24 dB, indicating successful learning of the 3D scene.</div>
+                </div>
+
+                <p>
+                    The validation PSNR reaches <strong>24.14 dB</strong> at iteration 900, exceeding the 23 dB 
+                    target. The smooth curves indicate stable training without overfitting.
+                </p>
+
+                <h3>Novel View Synthesis</h3>
+                <p>
+                    The ultimate test of NeRF is rendering novel views—camera positions never seen during training. 
+                    I used the test camera poses to create a rotating video:
+                </p>
+
+                <div class="image-container">
+                    <img src="project4/images/lego_nerf_images/lego_gif_1000iter.gif" alt="Novel view synthesis">
+                    <div class="project-caption">Novel view synthesis: 360° rotation around the Lego bulldozer after 1000 iterations. The model successfully reconstructs geometry and view-dependent appearance from new camera angles from the test set.</div>
+                </div>
+
+                <p>
+                    The video demonstrates NeRF's ability to:
+                </p>
+                <ul>
+                    <li>Maintain 3D consistency across viewpoints</li>
+                    <li>Render realistic shadows and reflections</li>
+                    <li>Handle complex geometry (wheels, blade, cabin)</li>
+                    <li>Produce smooth interpolation between camera poses</li>
+                </ul>
+
+                <h3>Extended Training Results</h3>
+                <p>
+                    To further improve quality, I trained the model for 5000 iterations with a larger batch size (~30,000 rays) 
+                    and more samples per ray (128). This extended training demonstrates continued improvement in rendering quality:
+                </p>
+
+                <div class="image-container">
+                    <img src="project4/images/lego_nerf_images/lego_renders_5000iter.jpg" alt="Lego 5000 iteration progression">
+                    <div class="project-caption">Novel view rendering at iterations 0, 500, 1500, 3000, and 5000. Extended training produces sharper details and more accurate colors compared to the 1000-iteration results.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project4/images/lego_nerf_images/5k_iter_psnr.png" alt="5000 iteration training metrics">
+                    <div class="project-caption">Validation PSNR over 5000 iterations. The metric continues improving beyond 1000 iterations, reaching higher quality reconstructions.</div>
+                </div>
+
+                <div class="image-container">
+                    <img src="project4/images/lego_nerf_images/lego_gif_5000iter.gif" alt="Novel view synthesis 5000 iterations">
+                    <div class="project-caption">360° rotation after 5000 iterations showing improved detail and sharper edges compared to the 1000-iteration model.</div>
+                </div>
+
+                <p>
+                    The extended training demonstrates that NeRF continues to improve with more iterations, producing 
+                    increasingly photorealistic novel views. The additional training time results in:
+                </p>
+                <ul>
+                    <li>Sharper edges and finer geometric details</li>
+                    <li>More accurate color reproduction</li>
+                </ul>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 2.6: Training on Custom Dataset</h2>
+                <p>
+                    Now I apply the full NeRF pipeline to the dragon dataset I created in Part 0. This tests whether 
+                    the method generalizes to real-world captures with my iPhone camera. Training on real data presents 
+                    additional challenges compared to the synthetic Lego scene: imperfect camera calibration, lighting 
+                    variations, and potential motion blur.
+                </p>
+
+                <h3>Training Improvements</h3>
+                <p>
+                    During initial experiments with the dragon dataset, I encountered training instability issues. 
+                    The density values were exploding, leading to poor convergence. I implemented several improvements 
+                    to stabilize training:
+                </p>
+
+                <h4>1. Softplus Activation for Density</h4>
+                <p>
+                    I replaced the ReLU activation on the density output with <strong>Softplus</strong>:
+                </p>
+                $$\text{Softplus}(x) = \log(1 + e^x)$$
+                <p>
+                    Unlike ReLU which allows unbounded positive values, Softplus provides a smooth, differentiable 
+                    alternative that grows more slowly for large inputs. This prevents density values from exploding 
+                    during training while still ensuring non-negative outputs. The smooth gradient also helps optimization 
+                    stability.
+                </p>
+
+                <h4>2. Learning Rate Warmup</h4>
+                <p>
+                    I added a <strong>learning rate warmup</strong> phase at the start of training. For the first 500 
+                    iterations, the learning rate gradually increases from 0 to the target learning rate (0.001). This 
+                    prevents the randomly initialized network from making large, unstable updates in early training when 
+                    gradients can be erratic.
+                </p>
+
+                <h4>3. Cosine Learning Rate Decay</h4>
+                <p>
+                    After warmup, I apply <strong>cosine annealing</strong> to decay the learning rate from the initial 
+                    value (0.001) down to a minimum (1e-5) following a cosine schedule:
+                </p>
+                $$\text{lr}(t) = \text{lr}_{\min} + \frac{1}{2}(\text{lr}_{\max} - \text{lr}_{\min})\left(1 + \cos\left(\frac{t - t_{\text{warmup}}}{T - t_{\text{warmup}}} \pi\right)\right)$$
+                <p>
+                    This smooth decay helps the network make large exploratory steps early in training, then gradually 
+                    transition to fine-tuning with smaller updates. The cosine schedule avoids abrupt learning rate drops.
+                </p>
+
+                <h3>Final Training Configuration</h3>
+                <p>
+                    After these improvements, I trained the dragon NeRF with the following hyperparameters:
+                </p>
+                <ul>
+                    <li><strong>Iterations:</strong> 10,000</li>
+                    <li><strong>Batch size:</strong> 8,192 rays per iteration</li>
+                    <li><strong>Initial learning rate:</strong> 0.001 (with warmup over 500 iterations)</li>
+                    <li><strong>Minimum learning rate:</strong> 1e-5 (cosine decay)</li>
+                    <li><strong>Network:</strong> 512 hidden units, L_pos=10, L_dir=4</li>
+                    <li><strong>Sampling:</strong> 128 samples per ray, near=0.1, far=0.5</li>
+                    <li><strong>Density activation:</strong> Softplus (instead of ReLU)</li>
+                </ul>
+
+                <p>
+                    Note the key differences from the Lego scene:
+                </p>
+                <ul>
+                    <li><strong>Wider network:</strong> 512 hidden units vs. 256 to handle more complex real-world appearance</li>
+                    <li><strong>More samples:</strong> 128 vs. 64 samples per ray for finer detail reconstruction</li>
+                    <li><strong>Adjusted near/far planes:</strong> 0.1-0.5 meters vs. 2.0-6.0, matching the dragon's scale</li>
+                    <li><strong>Learning rate schedule:</strong> Warmup + cosine decay for training stability</li>
+                </ul>
+
+                <h3>Training Results</h3>
+                <p>
+                    The final training configuration shown above was the result of extensive experimentation. Getting NeRF 
+                    to work on real-world iPhone photos proved far more challenging than the synthetic Lego scene. Here's 
+                    what I tried:
+                </p>
+
+                <h4>Experiments and Challenges</h4>
+                <ol>
+                    <li><strong>Activation functions:</strong> I replaced all ReLU activations with GELU to provide smoother 
+                        gradients, which helped with training stability but didn't solve the fundamental overfitting problem.</li>
+                    
+                    <li><strong>Normalization layers:</strong> Added LayerNorm after several layers to stabilize activations 
+                        and prevent internal covariate shift. This helped the model train more reliably but increased computation time.</li>
+                    
+                    <li><strong>Network capacity:</strong> Initially tried larger models with 512+ hidden units, thinking more 
+                        capacity would capture finer details. However, <em>larger models overfitted severely</em>—achieving 
+                        30+ dB on training images but performing poorly on validation and novel views. The model was essentially 
+                        "memorizing" the training views rather than learning the underlying 3D structure.</li>
+                    
+                    <li><strong>Sampling density:</strong> Increased samples per ray from 64 to 128, hoping denser sampling would 
+                        improve geometry reconstruction. This helped slightly with fine details but significantly increased 
+                        training time and didn't address overfitting.</li>
+                    
+                    <li><strong>Near/far plane tuning:</strong> Experimented with 10-15 different combinations of near/far values. 
+                        The physical scale was critical—values that were too large included empty space (wasting samples), while 
+                        values too small clipped the object. Found that near=0.02, far=0.2 worked best for the dragon scene.</li>
+                    
+                    <li><strong>Learning rate tuning:</strong> Tried various learning rates and schedules. Higher learning rates 
+                        (5e-3) diverged early, while lower rates (1e-4) converged too slowly. The warmup + cosine decay with 
+                        peak LR=1e-3 provided the best balance.</li>
+                    
+                    <li><strong>Training duration:</strong> Longer training (10,000+ iterations) consistently led to overfitting. 
+                        Had to stop training earlier (~2,000 iterations) to prevent the model from memorizing training views.</li>
+                </ol>
+
+                <h4>Final Compromise</h4>
+                <p>
+                    After all these experiments, I settled on a <strong>smaller model trained for fewer iterations</strong> 
+                    to avoid severe overfitting. The final configuration uses 256 hidden units (moderately sized) with training 
+                    stopped around 2,000 iterations when validation performance peaked. While this achieved ~20 training 
+                    PSNR, the validation performance and novel view synthesis quality are limited.
+                </p>
+
+                <div class="image-container">
+                    <img src="project4/images/part2_6_images/training_curves_iter_01998.png" alt="Dragon training curves">
+                    <div class="project-caption">Training curves over ~2000 iterations. Top left shows training loss steadily decreasing. Other plots show train vs validation PSNR and loss. Note the gap between train and validation metrics, indicating the model is starting to overfit despite the relatively short training.</div>
+                </div>
+
+                <p>
+                    The training curves reveal the challenge: while training PSNR reaches ~20 dB, there's a noticeable 
+                    gap with validation metrics. Training longer would only worsen this overfitting. The learning rate 
+                    warmup creates a smooth start, and the cosine decay helps maintain training stability.
+                </p>
+
+                <h3>Intermediate Renders</h3>
+                <p>
+                    The following images show how the dragon NeRF progressively learns the 3D scene structure over 
+                    the training period:
+                </p>
+
+                <div class="image-container">
+                    <img src="project4/images/part2_6_images/intermediate_renders.png" alt="Dragon intermediate renders">
+                    <div class="project-caption">Novel view renders at iterations 0, 500, 1000, 1500, and 1998. The dragon shape emerges quickly, but fine details and color accuracy remain challenging throughout training. The background ArUco marker is partially reconstructed but shows artifacts.</div>
+                </div>
+
+                <p>
+                    The renders show the model learning the rough geometry relatively quickly (by iteration 500), but 
+                    struggling to refine details. The dragon's texture and the background remain somewhat blurry even 
+                    at the end of training. This is partly due to stopping early to avoid overfitting, and partly due 
+                    to the inherent difficulty of reconstructing real-world scenes with imperfect camera calibration.
+                </p>
+
+                <h3>Novel View Synthesis</h3>
+                <p>
+                    After ~2,000 iterations, I rendered a 360° rotation video around the dragon, interpolating between training images that roughly trace a circle around the dragon. Unfortunately, the 
+                    results are not as clean as the Lego scene:
+                </p>
+
+                <div class="image-container">
+                    <video width="100%" controls loop>
+                        <source src="project4/images/part2_6_images/rotating_video.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="project-caption">360° rotation around the dragon from novel viewpoints. The video shows visible artifacts: blurry textures, ghosting, and inconsistent geometry. The model struggles to maintain 3D consistency across viewpoints, revealing the challenges of training NeRF on real-world iPhone captures.</div>
+                </div>
+
+                <p>
+                    The video quality is limited compared to the Lego results. Key issues include:
+                </p>
+                <ul>
+                    <li><strong>Blurry textures:</strong> The dragon's surface lacks fine detail</li>
+                    <li><strong>Ghosting artifacts:</strong> Semi-transparent regions appear where the model is uncertain</li>
+                    <li><strong>Geometry inconsistencies:</strong> The shape shifts slightly across different viewpoints</li>
+                    <li><strong>Background issues:</strong> The ArUco marker and table surface show reconstruction errors</li>
+                </ul>
+
+                <h3>Reflections on Real-World NeRF</h3>
+                <p>
+                    This project highlighted the significant gap between research papers and practical implementation. 
+                    The original NeRF paper's impressive results used carefully controlled synthetic scenes or professional 
+                    camera rigs. Training NeRF on casual iPhone photos revealed fundamental challenges:
+                </p>
+
+                <h4>Why Real-World NeRF is Hard</h4>
+                <ol>
+                    <li><strong>Calibration errors compound:</strong> Small inaccuracies in camera calibration (even 2-pixel 
+                        reprojection error) create geometric inconsistencies that the network struggles to resolve. The model 
+                        tries to "fit" these inconsistencies by memorizing training views rather than learning true 3D structure.</li>
+                    
+                    <li><strong>Limited training data:</strong> With only 30-50 training images, the network doesn't have 
+                        enough views to robustly learn the scene geometry. Professional NeRF datasets often use 100+ images 
+                        with more carefully planned viewpoint coverage.</li>
+                    
+                    <li><strong>Overfitting is the main enemy:</strong> Unlike the Lego scene, the dragon dataset showed 
+                        severe overfitting. Larger networks or longer training consistently achieved 30+ dB on training views 
+                        while producing terrible novel views. This suggests the model was memorizing individual training images 
+                        rather than understanding the 3D scene.</li>
+                    
+                    <li><strong>Hand stability matters:</strong> Even slight camera motion during capture creates issues. 
+                        Professional setups use tripods with precisely controlled camera movements for good reason.</li>
+                    
+                    <li><strong>Scale matters:</strong> The near/far plane tuning was critical and non-obvious. Too conservative 
+                        (near=0.02, far=0.3) clipped parts of the dragon; too loose (near=0.01, far=1.0) wasted samples on 
+                        empty space and reduced reconstruction quality.</li>
+                </ol>
+
+                <h4>What I Learned</h4>
+                <p>
+                    This experience was valuable precisely because it didn't produce perfect results:
+                </p>
+                <ul>
+                    <li><strong>Understanding overfitting:</strong> Seeing training PSNR climb to 30+ dB while validation stagnated 
+                        at 20 dB gave visceral insight into overfitting that no lecture could provide</li>
+                    
+                    <li><strong>Hyperparameter interdependencies:</strong> Every parameter affects others. Larger networks need 
+                        more regularization; longer training needs better data; higher learning rates need better calibration</li>
+                    
+                    <li><strong>The value of good data:</strong> The synthetic Lego scene worked beautifully because it had 
+                        perfect calibration, consistent lighting, and no motion blur. Data quality matters more than model architecture</li>
+                    
+                    <li><strong>Research vs. practice:</strong> Papers present polished final results after extensive tuning. 
+                        The messy experimental process—trying dozens of configurations, debugging strange artifacts, accepting 
+                        imperfect results—is rarely documented but is where real learning happens</li>
+                </ul>
+
+                <h4>Potential Improvements</h4>
+                <p>
+                    Given more time, several approaches might improve results:
+                </p>
+                <ul>
+                    <li>Capture more images (100+) with better viewpoint coverage</li>
+                    <li>Use a tripod for truly fixed center of projection</li>
+                    <li>Implement more sophisticated regularization (e.g., depth smoothness, normal consistency)</li>
+                    <li>Try hierarchical sampling or importance sampling to focus on occupied regions</li>
+                    <li>Use a validation-based early stopping criterion to automatically prevent overfitting</li>
+                    <li>Explore pre-training or data augmentation techniques</li>
+                </ul>
+
+                <p>
+                    While the final video quality is limited, this project successfully demonstrated the complete NeRF pipeline 
+                    from camera calibration through training and rendering. More importantly, it revealed the practical challenges 
+                    of applying state-of-the-art research to real-world scenarios—challenges that are essential to understand 
+                    for anyone working in computer vision.
+                </p>
+            </div>
+
+        </div>
+    </main>
+    <script src="../ascii-loader.js"></script>
+</body>
+</html>
+
