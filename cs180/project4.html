@@ -421,8 +421,8 @@ Forward Pass:
                 <ul>
                     <li><strong>Low frequency (L=1):</strong> Blurry results, cannot capture fine details regardless of network width</li>
                     <li><strong>Medium frequency (L=5, 10):</strong> Good balance, captures both structure and details</li>
-                    <li><strong>High frequency (L=20):</strong> Can represent fine details but may overfit</li>
-                    <li><strong>Network width:</strong> Wider networks (256) generally perform better, especially with higher frequencies</li>
+                    <li><strong>High frequency (L=20):</strong> Can represent fine details</li>
+                    <li><strong>Network width:</strong> Wider networks (256) generally perform better</li>
                 </ul>
 
                 <div class="image-container">
@@ -1047,10 +1047,10 @@ Intuition: Early high-density points "block" later points from contributing,
                 <ul>
                     <li><strong>Iterations:</strong> 10,000</li>
                     <li><strong>Batch size:</strong> 8,192 rays per iteration</li>
-                    <li><strong>Initial learning rate:</strong> 0.001 (with warmup over 500 iterations)</li>
-                    <li><strong>Minimum learning rate:</strong> 1e-5 (cosine decay)</li>
-                    <li><strong>Network:</strong> 512 hidden units, L_pos=10, L_dir=4</li>
-                    <li><strong>Sampling:</strong> 128 samples per ray, near=0.1, far=0.5</li>
+                    <li><strong>Initial learning rate:</strong> 0.0005 (with warmup over 100 iterations)</li>
+                    <li><strong>Minimum learning rate:</strong> 0 (cosine decay)</li>
+                    <li><strong>Network:</strong> 256 hidden units, L_pos=10, L_dir=4</li>
+                    <li><strong>Sampling:</strong> 64 samples per ray, near=0.02, far=0.2</li>
                     <li><strong>Density activation:</strong> Softplus (instead of ReLU)</li>
                 </ul>
 
@@ -1058,8 +1058,6 @@ Intuition: Early high-density points "block" later points from contributing,
                     Note the key differences from the Lego scene:
                 </p>
                 <ul>
-                    <li><strong>Wider network:</strong> 512 hidden units vs. 256 to handle more complex real-world appearance</li>
-                    <li><strong>More samples:</strong> 128 vs. 64 samples per ray for finer detail reconstruction</li>
                     <li><strong>Adjusted near/far planes:</strong> 0.1-0.5 meters vs. 2.0-6.0, matching the dragon's scale</li>
                     <li><strong>Learning rate schedule:</strong> Warmup + cosine decay for training stability</li>
                 </ul>
@@ -1081,7 +1079,7 @@ Intuition: Early high-density points "block" later points from contributing,
                     
                     <li><strong>Network capacity:</strong> Initially tried larger models with 512+ hidden units, thinking more 
                         capacity would capture finer details. However, <em>larger models overfitted severely</em>—achieving 
-                        30+ dB on training images but performing poorly on validation and novel views. The model was essentially 
+                        26+ dB on training images but performing poorly on validation and novel views. The model was essentially 
                         "memorizing" the training views rather than learning the underlying 3D structure.</li>
                     
                     <li><strong>Sampling density:</strong> Increased samples per ray from 64 to 128, hoping denser sampling would 
@@ -1144,10 +1142,7 @@ Intuition: Early high-density points "block" later points from contributing,
                 </p>
 
                 <div class="image-container">
-                    <video width="100%" controls loop>
-                        <source src="project4/images/part2_6_images/rotating_video.mp4" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
+                    <img src="project4/images/part2_6_images/rotating_video (2).gif" alt="Dragon rotation">
                     <div class="project-caption">360° rotation around the dragon from novel viewpoints. The video shows visible artifacts: blurry textures, ghosting, and inconsistent geometry. The model struggles to maintain 3D consistency across viewpoints, revealing the challenges of training NeRF on real-world iPhone captures.</div>
                 </div>
 
@@ -1165,69 +1160,7 @@ Intuition: Early high-density points "block" later points from contributing,
                 <p>
                     This project highlighted the significant gap between research papers and practical implementation. 
                     The original NeRF paper's impressive results used carefully controlled synthetic scenes or professional 
-                    camera rigs. Training NeRF on casual iPhone photos revealed fundamental challenges:
-                </p>
-
-                <h4>Why Real-World NeRF is Hard</h4>
-                <ol>
-                    <li><strong>Calibration errors compound:</strong> Small inaccuracies in camera calibration (even 2-pixel 
-                        reprojection error) create geometric inconsistencies that the network struggles to resolve. The model 
-                        tries to "fit" these inconsistencies by memorizing training views rather than learning true 3D structure.</li>
-                    
-                    <li><strong>Limited training data:</strong> With only 30-50 training images, the network doesn't have 
-                        enough views to robustly learn the scene geometry. Professional NeRF datasets often use 100+ images 
-                        with more carefully planned viewpoint coverage.</li>
-                    
-                    <li><strong>Overfitting is the main enemy:</strong> Unlike the Lego scene, the dragon dataset showed 
-                        severe overfitting. Larger networks or longer training consistently achieved 30+ dB on training views 
-                        while producing terrible novel views. This suggests the model was memorizing individual training images 
-                        rather than understanding the 3D scene.</li>
-                    
-                    <li><strong>Hand stability matters:</strong> Even slight camera motion during capture creates issues. 
-                        Professional setups use tripods with precisely controlled camera movements for good reason.</li>
-                    
-                    <li><strong>Scale matters:</strong> The near/far plane tuning was critical and non-obvious. Too conservative 
-                        (near=0.02, far=0.3) clipped parts of the dragon; too loose (near=0.01, far=1.0) wasted samples on 
-                        empty space and reduced reconstruction quality.</li>
-                </ol>
-
-                <h4>What I Learned</h4>
-                <p>
-                    This experience was valuable precisely because it didn't produce perfect results:
-                </p>
-                <ul>
-                    <li><strong>Understanding overfitting:</strong> Seeing training PSNR climb to 30+ dB while validation stagnated 
-                        at 20 dB gave visceral insight into overfitting that no lecture could provide</li>
-                    
-                    <li><strong>Hyperparameter interdependencies:</strong> Every parameter affects others. Larger networks need 
-                        more regularization; longer training needs better data; higher learning rates need better calibration</li>
-                    
-                    <li><strong>The value of good data:</strong> The synthetic Lego scene worked beautifully because it had 
-                        perfect calibration, consistent lighting, and no motion blur. Data quality matters more than model architecture</li>
-                    
-                    <li><strong>Research vs. practice:</strong> Papers present polished final results after extensive tuning. 
-                        The messy experimental process—trying dozens of configurations, debugging strange artifacts, accepting 
-                        imperfect results—is rarely documented but is where real learning happens</li>
-                </ul>
-
-                <h4>Potential Improvements</h4>
-                <p>
-                    Given more time, several approaches might improve results:
-                </p>
-                <ul>
-                    <li>Capture more images (100+) with better viewpoint coverage</li>
-                    <li>Use a tripod for truly fixed center of projection</li>
-                    <li>Implement more sophisticated regularization (e.g., depth smoothness, normal consistency)</li>
-                    <li>Try hierarchical sampling or importance sampling to focus on occupied regions</li>
-                    <li>Use a validation-based early stopping criterion to automatically prevent overfitting</li>
-                    <li>Explore pre-training or data augmentation techniques</li>
-                </ul>
-
-                <p>
-                    While the final video quality is limited, this project successfully demonstrated the complete NeRF pipeline 
-                    from camera calibration through training and rendering. More importantly, it revealed the practical challenges 
-                    of applying state-of-the-art research to real-world scenarios—challenges that are essential to understand 
-                    for anyone working in computer vision.
+                    camera rigs. Training NeRF on casual iPhone photos revealed fundamental challenges.
                 </p>
             </div>
 
