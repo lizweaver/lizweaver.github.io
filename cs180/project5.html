@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project 5: The Power of Diffusion Models - Part A</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+    
+    <!-- MathJax for mathematical equations -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+</head>
+<body>
+    <header>
+        <a href="../index.html" style="text-decoration: none;"><h1 class="site-title">Elizabeth Weaver</h1></a>
+        <nav>
+            <a href="../index.html" class="nav-gray">Home</a>
+            <a href="../projects.html" class="nav-dark">Projects</a>
+            <a href="../blog.html" class="nav-green">Blog</a>
+        </nav>
+    </header>
+
+    <div class="ascii-art"></div>
+
+    <div class="breadcrumb">
+        <a href="../projects.html">Projects</a> / <a href="index.html">CS180</a> / Project 5: The Power of Diffusion Models - Part A
+    </div>
+
+    <main class="main-content projects with-breadcrumb">
+        <div class="profile-section">
+            <div class="project-header">
+                <h1>Part A: The Power of Diffusion Models!</h1>
+                <p>
+                    In this project, I explore diffusion models using the DeepFloyd IF model. I implement diffusion 
+                    sampling loops from scratch, experiment with denoising techniques, and use diffusion models for 
+                    creative tasks such as inpainting, image-to-image translation, visual anagrams, and hybrid images. 
+                    This project demonstrates the power of modern generative AI models and their applications in 
+                    computational photography.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 0: Setup</h2>
+                <p>
+                    I used the DeepFloyd IF diffusion model, a two-stage model trained by Stability AI. The first stage 
+                    produces images of size 64×64, and the second stage upsamples them to 256×256. I accessed the model 
+                    through Hugging Face after accepting the usage conditions and logging in with my access token.
+                </p>
+                <p>
+                    To generate images from text prompts, I needed to convert text strings into high-dimensional prompt 
+                    embeddings (4096 dimensions). I used Hugging Face clusters to generate embeddings for my custom 
+                    text prompts, which I then loaded into the notebook.
+                </p>
+                <p>
+                    I created embeddings for the following prompts:
+                </p>
+                <ul>
+                    <li>"a high quality photo" (used as a baseline/null condition)</li>
+                    <li>"a watercolor painting of a wildflower meadow"</li>
+                    <li>"a photo of a cat sleeping on a windowsill"</li>
+                    <li>"an oil painting of a bustling farmer's market"</li>
+                    <li>"a lithograph of a lighthouse on a cliff"</li>
+                    <li>"a photo of a vintage bicycle leaning against a brick wall"</li>
+                    <li>"a watercolor painting of a hot air balloon"</li>
+                    <li>"a sketch of a piano player performing"</li>
+                    <li>"a photo of frost on winter branches"</li>
+                    <li>"a photo of a cozy library with warm lighting"</li>
+                    <li>"a photo of a coffee cup with latte art"</li>
+                    <li>"an oil painting of a stormy sea"</li>
+                    <li>"a photo of dewdrops on a spider web"</li>
+                    <li>"" (empty prompt for unconditional generation)</li>
+                </ul>
+                <p>
+                    I used a consistent random seed throughout all experiments to ensure reproducibility. The random seed 
+                    value I used was <strong>42</strong>, which I set at the beginning of the notebook and used consistently 
+                    for all subsequent parts.
+                </p>
+                <p>
+                    I chose three of my prompts to generate images and explore how different settings affect the output quality:
+                </p>
+                <ol>
+                    <li><strong>"a watercolor painting of a wildflower meadow"</strong> - An artistic watercolor style prompt</li>
+                    <li><strong>"a photo of a cat sleeping on a windowsill"</strong> - A photorealistic subject prompt</li>
+                    <li><strong>"an oil painting of a bustling farmer's market"</strong> - An artistic oil painting style prompt</li>
+                </ol>
+                <p>
+                    I experimented with different <code>num_inference_steps</code> values to understand the trade-off 
+                    between generation speed and image quality. The <code>num_inference_steps</code> parameter controls how 
+                    many denoising steps the model takes: fewer steps are faster but produce lower quality images, while 
+                    more steps take longer but generate higher quality results.
+                </p>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/part0_numinference_out.jpg" alt="Comparison of different num_inference_steps">
+                    <div class="project-caption">Generated images for three chosen prompts at different num_inference_steps values (2, 20, and 200). The prompts are: "a watercolor painting of a wildflower meadow" (left column), "a photo of a cat sleeping on a windowsill" (middle column), and "an oil painting of a bustling farmer's market" (right column). The images clearly demonstrate how increasing num_inference_steps dramatically improves image quality—from pure noise at 2 steps, to recognizable but pixelated images at 20 steps, to clear, detailed images at 200 steps.</div>
+                </div>
+                <p>
+                    <strong>Reflections on output quality:</strong> The diffusion model demonstrates impressive capability 
+                    in generating images that match text prompts. The quality of outputs varies based on the prompt type—photorealistic 
+                    prompts like "a photo of a cat sleeping on a windowsill" produce detailed, realistic images, while artistic 
+                    prompts like "a watercolor painting of a wildflower meadow" and "an oil painting of a bustling farmer's market" 
+                    generate stylized images that match the artistic medium described. The relationship between prompts and outputs 
+                    is strong, with the model successfully interpreting both concrete subjects (cat, market scenes) and artistic 
+                    styles (watercolor, oil painting). 
+                </p>
+                <p>
+                    The comparison across different <code>num_inference_steps</code> values reveals a clear progression: at 2 steps, 
+                    the images are essentially pure noise with no recognizable content. At 20 steps, basic structure and color 
+                    coherence emerge, but images remain heavily pixelated and abstract. At 200 steps, the images become clear, 
+                    detailed, and closely match their text descriptions. 
+                </p>
+                <p>
+                    The improvement varies by prompt type. For photorealistic prompts like "a photo of a cat sleeping on a windowsill", 
+                    both 20 and 200 steps produce photorealistic results, though 200 steps shows finer detail. For more complex 
+                    artistic scenes like "an oil painting of a bustling farmer's market", the difference is more pronounced: at 20 
+                    steps the scene is recognizable but lacks the dynamic "bustling" quality, while at 200 steps the model better 
+                    captures the energy and activity suggested by the prompt. This demonstrates that while fewer steps are faster, 
+                    significantly more steps are required to achieve nuanced interpretations of complex prompts. The improvement is 
+                    most dramatic between 2 and 20 steps, with continued refinement up to 200 steps, especially for prompts requiring 
+                    complex scene understanding.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1: Sampling Loops</h2>
+                <p>
+                    In this section, I implement the core components of diffusion models: the forward process (adding 
+                    noise), denoising operations, and iterative sampling loops. These form the foundation for all 
+                    subsequent applications.
+                </p>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.1: Implementing the Forward Process</h2>
+                <p>
+                    The forward process is fundamental to diffusion models. It takes a clean image and adds noise to it 
+                    according to a predefined schedule. The forward process is defined by:
+                </p>
+                $$q(x_t | x_0) = \mathcal{N}(x_t; \sqrt{\bar{\alpha}_t} x_0, (1 - \bar{\alpha}_t) I)$$
+                <p>
+                    where $\bar{\alpha}_t$ (alpha_cumprod) controls the amount of noise at timestep $t$. When $t=0$, we 
+                    have a clean image, and for larger $t$, more noise is added. The $\bar{\alpha}_t$ values are close 
+                    to 1 for small $t$ and close to 0 for large $t$.
+                </p>
+                <p>
+                    I implemented the <code>forward(im, t)</code> function that takes a clean image and a timestep, 
+                    then samples a noisy version according to the diffusion schedule. I tested this on a 64×64 resized 
+                    image of the Berkeley Campanile at noise levels 250, 500, and 750.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Forward process implementation (pseudocode)</div>
+                    <pre><code>FUNCTION forward(im, t):
+    """
+    Add noise to a clean image according to the diffusion schedule.
+    
+    Input:
+        im: Clean image tensor (shape: [1, 3, H, W])
+        t: Timestep (integer, 0 to 1000)
+    
+    Output:
+        noisy_im: Noisy image at timestep t
+    """
+    
+    1. GET noise schedule parameters:
+       - alpha_cumprod_t = alphas_cumprod[t]  # Precomputed cumulative product
+       - This controls how much signal vs noise at timestep t
+    
+    2. COMPUTE scaling factors:
+       - sqrt_alpha = sqrt(alpha_cumprod_t)  # Signal scaling
+       - sqrt_one_minus_alpha = sqrt(1 - alpha_cumprod_t)  # Noise scaling
+    
+    3. SAMPLE random noise:
+       - noise = torch.randn_like(im)  # Gaussian noise with same shape as image
+       - This is ε ~ N(0, I) from the diffusion formula
+    
+    4. APPLY forward diffusion formula:
+       - noisy_im = sqrt_alpha * im + sqrt_one_minus_alpha * noise
+       - This implements: x_t = sqrt(ᾱ_t) * x_0 + sqrt(1 - ᾱ_t) * ε
+    
+    5. RETURN noisy_im
+    
+    Key insight: At t=0, alpha_cumprod ≈ 1, so noisy_im ≈ im (clean)
+                 At t=1000, alpha_cumprod ≈ 0, so noisy_im ≈ noise (pure noise)</code></pre>
+                </div>
+
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/denoising_250.png" alt="Noisy Campanile at t=250">
+                    <div class="project-caption">Noisy Campanile at t=250. The image shows moderate noise while still retaining recognizable structure.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/denoising_500.png" alt="Noisy Campanile at t=500">
+                    <div class="project-caption">Noisy Campanile at t=500. The noise level has increased significantly, making details harder to distinguish.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/denoising_750.png" alt="Noisy Campanile at t=750">
+                    <div class="project-caption">Noisy Campanile at t=750. At this high noise level, the image is almost pure noise with only faint traces of the original structure.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.2: Classical Denoising</h2>
+                <p>
+                    Before using the diffusion model, I attempted to denoise the images using classical methods—specifically, 
+                    Gaussian blur filtering. This serves as a baseline to demonstrate why diffusion models are necessary. 
+                    I applied Gaussian blur to the noisy Campanile images at timesteps 250, 500, and 750.
+                </p>
+                <p>
+                    As expected, Gaussian blur filtering struggles to remove noise while preserving image details. The 
+                    results show that simple filtering cannot effectively separate signal from noise, especially at high 
+                    noise levels. This motivates the need for learned denoising models.
+                </p>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/step250_gauss_blur.jpg" alt="Gaussian blur denoising at t=250">
+                    <div class="project-caption">Gaussian blur denoising at t=250. The blur reduces noise but also removes important image details.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/step500_gauss_blur.jpg" alt="Gaussian blur denoising at t=500">
+                    <div class="project-caption">Gaussian blur denoising at t=500. At higher noise levels, Gaussian blur becomes increasingly ineffective.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/step750_gauss_blur.jpg" alt="Gaussian blur denoising at t=750">
+                    <div class="project-caption">Gaussian blur denoising at t=750. The classical method fails to recover meaningful structure from heavily noisy images.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.3: One-Step Denoising</h2>
+                <p>
+                    Now I use the pretrained diffusion model UNet to denoise images. The UNet takes a noisy image and 
+                    timestep as input and predicts the noise in the image. With the predicted noise, I can estimate the 
+                    clean image.
+                </p>
+                <p>
+                    The key insight is that the UNet was trained on millions of (noisy image, timestep, clean image) 
+                    pairs, so it has learned to project noisy images back onto the manifold of natural images. However, 
+                    for a single denoising step, the quality degrades as more noise is added, since the problem becomes 
+                    increasingly difficult.
+                </p>
+                <p>
+                    I implemented one-step denoising for the three noisy Campanile images (t = 250, 500, 750). The results 
+                    show that the diffusion model performs significantly better than Gaussian blur, especially at moderate 
+                    noise levels. However, at very high noise levels (t=750), even the diffusion model struggles with 
+                    a single step.
+                </p>
+                <p>
+                    For each of the three noisy images (t = [250, 500, 750]), I show the original image, the noisy image, 
+                    and the one-step denoised estimate side by side:
+                </p>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/denoising_250.png" alt="One-step denoising at t=250">
+                    <div class="project-caption">One-step denoising at t=250: Original image (left), noisy image (middle), and denoised estimate (right). The diffusion model successfully recovers most of the structure at this moderate noise level.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/denoising_500.png" alt="One-step denoising at t=500">
+                    <div class="project-caption">One-step denoising at t=500: Original image (left), noisy image (middle), and denoised estimate (right). At this higher noise level, the estimate shows more artifacts but still captures the main structure.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/denoising_750.png" alt="One-step denoising at t=750">
+                    <div class="project-caption">One-step denoising at t=750: Original image (left), noisy image (middle), and denoised estimate (right). At this very high noise level, single-step denoising struggles significantly, demonstrating the need for iterative denoising.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/iterative_vs_onestep.jpg" alt="One-step denoising comparison">
+                    <div class="project-caption">Comparison of one-step denoising results. The diffusion model successfully recovers structure from noisy images, though quality decreases with higher noise levels.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.4: Iterative Denoising</h2>
+                <p>
+                    Diffusion models are designed to denoise iteratively. Instead of removing all noise in one step, 
+                    we gradually reduce noise over multiple steps. This is much more effective than single-step denoising.
+                </p>
+                <p>
+                    To speed up the process, I use strided timesteps—starting at timestep 990 and taking steps of size 
+                    30 until reaching 0. This creates a schedule: [990, 960, 930, ..., 30, 0]. The rationale for step 
+                    skipping comes from connections with differential equations, allowing us to take larger steps while 
+                    maintaining quality.
+                </p>
+                <p>
+                    At each step, I compute the next less-noisy image using the formula:
+                </p>
+                $$x_{t'} = \sqrt{\bar{\alpha}_{t'}} \hat{x}_0 + \sqrt{1 - \bar{\alpha}_{t'}} \epsilon$$
+                <p>
+                    where $\hat{x}_0$ is the estimated clean image from one-step denoising, and $\epsilon$ includes 
+                    predicted variance for randomness.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Strided timesteps and iterative denoising (pseudocode)</div>
+                    <pre><code># STEP 1: Create strided timesteps
+FUNCTION create_strided_timesteps():
+    """
+    Create a list of timesteps with stride 30, starting at 990, ending at 0.
+    This speeds up sampling by skipping intermediate steps.
+    """
+    
+    strided_timesteps = []
+    current = 990
+    
+    WHILE current >= 0:
+        strided_timesteps.append(current)
+        current = current - 30  # Stride of 30
+    
+    # Result: [990, 960, 930, ..., 30, 0]
+    
+    # Initialize scheduler with these timesteps
+    stage_1.scheduler.set_timesteps(timesteps=strided_timesteps)
+    
+    RETURN strided_timesteps
+
+
+# STEP 2: Iterative denoising function
+FUNCTION iterative_denoise(im_noisy, i_start, prompt_embeds, timesteps):
+    """
+    Denoise an image iteratively from timestep[i_start] to timestep[0].
+    
+    Input:
+        im_noisy: Noisy image tensor
+        i_start: Starting index in timesteps array
+        prompt_embeds: Text prompt embeddings for conditioning
+        timesteps: List of timesteps (e.g., [990, 960, ..., 0])
+    
+    Output:
+        clean: Denoised image
+        intermediate_images: List of images at each step
+    """
+    
+    x_t = im_noisy  # Current noisy image
+    intermediate_images = []
+    
+    WITH torch.no_grad():  # Save memory by disabling gradients
+        
+        FOR i FROM i_start TO len(timesteps) - 2:
+            
+            # Get current and next timesteps
+            t = timesteps[i]           # Current timestep (more noisy)
+            prev_t = timesteps[i+1]    # Next timestep (less noisy)
+            
+            # Get noise schedule parameters
+            alpha_cumprod_t = alphas_cumprod[t]
+            alpha_cumprod_prev_t = alphas_cumprod[prev_t]
+            
+            # Compute coefficients for denoising step
+            alpha_t = alpha_cumprod_t / alpha_cumprod_prev_t
+            beta_t = 1 - alpha_t
+            
+            # PREDICT NOISE using UNet
+            model_output = stage_1.unet(
+                x_t,
+                t,
+                encoder_hidden_states=prompt_embeds,
+                return_dict=False
+            )[0]
+            
+            # UNet outputs [noise_estimate, variance_estimate]
+            noise_pred, predicted_variance = torch.split(model_output, x_t.shape[1], dim=1)
+            
+            # ESTIMATE CLEAN IMAGE from noisy image and predicted noise
+            x0_est = (x_t - torch.sqrt(1 - alpha_cumprod_t) * noise_pred) / torch.sqrt(alpha_cumprod_t)
+            
+            # COMPUTE COEFFICIENTS for interpolation
+            x0_coefficient = torch.sqrt(alpha_cumprod_prev_t) * beta_t / (1 - alpha_cumprod_t)
+            xt_coefficient = torch.sqrt(alpha_t) * (1 - alpha_cumprod_prev_t) / (1 - alpha_cumprod_t)
+            
+            # INTERPOLATE between estimated clean image and current noisy image
+            x_t_prev = x0_coefficient * x0_est + xt_coefficient * x_t
+            
+            # ADD VARIANCE for randomness (prevents mode collapse)
+            x_t_prev = add_variance(predicted_variance, t, x_t_prev)
+            
+            # UPDATE for next iteration
+            x_t = x_t_prev
+            intermediate_images.append(x_t.cpu().detach().numpy())
+    
+    clean = x_t.cpu().detach().numpy()
+    RETURN clean, intermediate_images</code></pre>
+                </div>
+
+                <p>
+                    I tested iterative denoising on the Campanile image starting from timestep 90 (i_start=10). The 
+                    results show progressive improvement as noise is gradually removed.
+                </p>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/iterative_denoise_5_loop.jpg" alt="Iterative denoising progression">
+                    <div class="project-caption">Iterative denoising progression showing every 5th step. The image gradually becomes cleaner as noise is removed iteratively. The final result is much better than one-step denoising or Gaussian blur.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/iterative_vs_onestep.jpg" alt="Comparison of denoising methods">
+                    <div class="project-caption">Comparison of different denoising methods: original image, iteratively denoised result, one-step denoising (much worse quality), and Gaussian blur filtering. This demonstrates that iterative denoising produces significantly better results than single-step denoising or classical filtering methods.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.5: Diffusion Model Sampling</h2>
+                <p>
+                    One of the most powerful applications of diffusion models is generating images from scratch. By 
+                    starting with pure random noise and iteratively denoising it, we can create entirely new images.
+                </p>
+                <p>
+                    I implemented image generation by setting i_start=0 (starting from pure noise at timestep 990) and 
+                    running the iterative denoising process. I generated 5 images using the prompt "a high quality photo" 
+                    as a weak condition.
+                </p>
+                <p>
+                    The results show that the model can generate diverse, coherent images from random noise. However, 
+                    without stronger conditioning, the images are somewhat generic and lack specific content. This 
+                    motivates the use of Classifier-Free Guidance (CFG) in the next section.
+                </p>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/sampled_images.jpg" alt="Sampled images without CFG">
+                    <div class="project-caption">Five images sampled from pure noise using the prompt "a high quality photo". The images are diverse but somewhat generic without stronger text conditioning.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.6: Classifier-Free Guidance (CFG)</h2>
+                <p>
+                    Classifier-Free Guidance dramatically improves image quality by using both conditional and 
+                    unconditional noise estimates. The formula is:
+                </p>
+                $$\epsilon = \epsilon_{\text{uncond}} + \gamma (\epsilon_{\text{cond}} - \epsilon_{\text{uncond}})$$
+                <p>
+                    where $\gamma$ (the CFG scale) controls the strength of guidance. For $\gamma=1$, we get the 
+                    conditional estimate. For $\gamma > 1$, we amplify the difference between conditional and 
+                    unconditional estimates, leading to higher quality but less diverse images.
+                </p>
+                <p>
+                    I implemented <code>iterative_denoise_cfg</code> which computes both conditional and unconditional 
+                    noise estimates at each step. The unconditional estimate uses an empty prompt embedding, while the 
+                    conditional uses the text prompt embedding.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Classifier-Free Guidance implementation (pseudocode)</div>
+                    <pre><code>FUNCTION iterative_denoise_cfg(im_noisy, i_start, prompt_embeds, 
+                                uncond_prompt_embeds, timesteps, scale=7):
+    """
+    Iterative denoising with Classifier-Free Guidance (CFG).
+    CFG improves quality by amplifying the difference between conditional 
+    and unconditional noise estimates.
+    
+    Input:
+        im_noisy: Noisy image tensor
+        i_start: Starting index in timesteps array
+        prompt_embeds: Conditional text prompt embeddings
+        uncond_prompt_embeds: Unconditional prompt embeddings (empty string "")
+        timesteps: List of timesteps
+        scale: CFG scale (γ), typically 7.0
+    
+    Output:
+        clean: Denoised image with CFG
+        intermediate_images: List of images at each step
+    """
+    
+    x_t = im_noisy
+    intermediate_images = []
+    
+    WITH torch.no_grad():
+        
+        FOR i FROM i_start TO len(timesteps) - 2:
+            
+            t = timesteps[i]
+            prev_t = timesteps[i+1]
+            alpha_cumprod_t = alphas_cumprod[t]
+            alpha_cumprod_prev_t = alphas_cumprod[prev_t]
+            alpha_t = alpha_cumprod_t / alpha_cumprod_prev_t
+            beta_t = 1 - alpha_t
+            
+            # COMPUTE CONDITIONAL noise estimate (with text prompt)
+            model_output_cond = stage_1.unet(
+                x_t,
+                t,
+                encoder_hidden_states=prompt_embeds,  # Text prompt
+                return_dict=False
+            )[0]
+            noise_cond, predicted_variance = torch.split(model_output_cond, x_t.shape[1], dim=1)
+            
+            # COMPUTE UNCONDITIONAL noise estimate (empty prompt)
+            model_output_uncond = stage_1.unet(
+                x_t,
+                t,
+                encoder_hidden_states=uncond_prompt_embeds,  # Empty string ""
+                return_dict=False
+            )[0]
+            noise_uncond, _ = torch.split(model_output_uncond, x_t.shape[1], dim=1)
+            
+            # APPLY CFG FORMULA: amplify difference between conditional and unconditional
+            noise_pred = noise_uncond + scale * (noise_cond - noise_uncond)
+            # For scale=7: ε = ε_uncond + 7 * (ε_cond - ε_uncond)
+            # This amplifies the effect of the text prompt
+            
+            # ESTIMATE CLEAN IMAGE using CFG noise estimate
+            x0_est = (x_t - torch.sqrt(1 - alpha_cumprod_t) * noise_pred) / torch.sqrt(alpha_cumprod_t)
+            
+            # COMPUTE INTERPOLATION COEFFICIENTS
+            x0_coefficient = torch.sqrt(alpha_cumprod_prev_t) * beta_t / (1 - alpha_cumprod_t)
+            xt_coefficient = torch.sqrt(alpha_t) * (1 - alpha_cumprod_prev_t) / (1 - alpha_cumprod_t)
+            
+            # INTERPOLATE to get next less-noisy image
+            x_t_prev = x0_coefficient * x0_est + xt_coefficient * x_t
+            
+            # ADD VARIANCE (use conditional variance)
+            x_t_prev = add_variance(predicted_variance, t, x_t_prev)
+            
+            x_t = x_t_prev
+            intermediate_images.append(x_t.cpu().detach().numpy())
+    
+    clean = x_t.cpu().detach().numpy()
+    RETURN clean, intermediate_images</code></pre>
+                </div>
+
+                <p>
+                    I generated 5 images with CFG scale $\gamma=7$ using the prompt "a high quality photo". The results 
+                    show significantly improved quality compared to sampling without CFG.
+                </p>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/sampled_images_cfg.jpg" alt="Sampled images with CFG">
+                    <div class="project-caption">Five images sampled with CFG scale γ=7. The images show improved quality and coherence compared to sampling without CFG.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.7: Image-to-image Translation</h2>
+                <p>
+                    Diffusion models can be used to edit existing images through a technique called SDEdit. The idea is 
+                    to add a controlled amount of noise to an image, then denoise it. The denoising process "forces" the 
+                    noisy image back onto the natural image manifold, effectively making edits.
+                </p>
+                <p>
+                    The amount of noise added controls the strength of the edit: more noise leads to larger changes, 
+                    while less noise preserves more of the original. This works because the diffusion model must 
+                    "hallucinate" new content to denoise the image, and this creativity enables editing.
+                </p>
+                <p>
+                    I tested SDEdit on the Campanile image using noise levels [1, 3, 5, 7, 10, 20] (corresponding to 
+                    different starting indices in the strided timesteps). The results show a gradual transition from the 
+                    original image (at low noise) to more edited versions (at higher noise).
+                </p>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/campanile_noise_levels.jpg" alt="Campanile SDEdit at different noise levels">
+                    <div class="project-caption">SDEdit on the Campanile at different noise levels. Lower noise levels preserve more of the original, while higher levels create more dramatic edits.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/loki_img_to_img.jpg" alt="Loki SDEdit at different noise levels">
+                    <div class="project-caption">SDEdit on an image of my dog Loki at different noise levels [1, 3, 5, 7, 10, 20]. The diffusion model gradually transforms the image while preserving the overall composition.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/windmill_img_to_img.jpg" alt="Windmill SDEdit at different noise levels">
+                    <div class="project-caption">SDEdit on a windmill image at different noise levels [1, 3, 5, 7, 10, 20]. The edits become more pronounced as the noise level increases, demonstrating the controllable nature of SDEdit.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.7.1: Editing Hand-Drawn and Web Images</h2>
+                <p>
+                    SDEdit works particularly well when starting with non-realistic images (paintings, sketches, drawings) 
+                    and projecting them onto the natural image manifold. This allows us to "realize" hand-drawn sketches 
+                    or stylized images as photorealistic photos.
+                </p>
+                <p>
+                    I tested this on:
+                </p>
+                <ol>
+                    <li><strong>Web image:</strong> A drawing tutorial image downloaded from the internet</li>
+                    <li><strong>Hand-drawn images:</strong> Two sketches I drew using the provided drawing interface</li>
+                </ol>
+                <p>
+                    For each image, I applied SDEdit at noise levels [1, 3, 5, 7, 10, 20] to show the progression from 
+                    the original drawing to a more realistic image.
+                </p>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/web_img_to_img_all_i_start.jpg" alt="Web image SDEdit">
+                    <div class="project-caption">SDEdit applied to a web image (drawing tutorial) at different noise levels. The process gradually transforms the stylized drawing into a more realistic image.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/dog_drawing_img_to_img_all_i_start.jpg" alt="Hand-drawn dog SDEdit">
+                    <div class="project-caption">SDEdit applied to a hand-drawn dog sketch. The diffusion model successfully interprets the sketch and generates a realistic image while preserving the original composition.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/mountain_drawing_img_to_img_all_i_start.jpg" alt="Hand-drawn mountain SDEdit">
+                    <div class="project-caption">SDEdit applied to a hand-drawn mountain landscape. The model adds realistic details like texture, lighting, and depth while maintaining the overall structure of the drawing.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.7.2: Inpainting</h2>
+                <p>
+                    Inpainting is the task of filling in missing or masked regions of an image. I implemented inpainting 
+                    using the RePaint algorithm, which runs the diffusion denoising loop but at each step, "forces" the 
+                    unmasked regions to match the original image (with appropriate noise added for the current timestep).
+                </p>
+                <p>
+                    The algorithm works by:
+                </p>
+                <ol>
+                    <li>Running the normal denoising loop to get $x_{t'}$</li>
+                    <li>Replacing pixels in the unmasked region with the original image (with noise added for timestep $t'$)</li>
+                    <li>Repeating until we reach a clean image</li>
+                </ol>
+
+                <div class="code-container">
+                    <div class="code-title">Inpainting implementation (pseudocode)</div>
+                    <pre><code>FUNCTION inpaint(original_image, mask, prompt_embeds, uncond_prompt_embeds, 
+                 timesteps, scale=7):
+    """
+    Inpaint masked regions of an image using the RePaint algorithm.
+    
+    Input:
+        original_image: Original clean image tensor
+        mask: Binary mask (1 = region to inpaint, 0 = keep original)
+        prompt_embeds: Text prompt embeddings
+        uncond_prompt_embeds: Unconditional embeddings
+        timesteps: List of timesteps
+        scale: CFG scale
+    
+    Output:
+        inpainted: Image with masked regions filled in
+    """
+    
+    # Start with pure noise
+    x_t = torch.randn_like(original_image).half().to(device)
+    
+    WITH torch.no_grad():
+        
+        FOR i FROM 0 TO len(timesteps) - 2:
+            
+            t = timesteps[i]
+            prev_t = timesteps[i+1]
+            alpha_cumprod_t = alphas_cumprod[t]
+            alpha_cumprod_prev_t = alphas_cumprod[prev_t]
+            alpha_t = alpha_cumprod_t / alpha_cumprod_prev_t
+            beta_t = 1 - alpha_t
+            
+            # DENOISE using CFG (same as iterative_denoise_cfg)
+            model_output_cond = stage_1.unet(
+                x_t, t, encoder_hidden_states=prompt_embeds, return_dict=False
+            )[0]
+            model_output_uncond = stage_1.unet(
+                x_t, t, encoder_hidden_states=uncond_prompt_embeds, return_dict=False
+            )[0]
+            
+            noise_cond, predicted_variance = torch.split(model_output_cond, x_t.shape[1], dim=1)
+            noise_uncond, _ = torch.split(model_output_uncond, x_t.shape[1], dim=1)
+            noise_pred = noise_uncond + scale * (noise_cond - noise_uncond)
+            
+            x0_est = (x_t - torch.sqrt(1 - alpha_cumprod_t) * noise_pred) / torch.sqrt(alpha_cumprod_t)
+            x0_coefficient = torch.sqrt(alpha_cumprod_prev_t) * beta_t / (1 - alpha_cumprod_t)
+            xt_coefficient = torch.sqrt(alpha_t) * (1 - alpha_cumprod_prev_t) / (1 - alpha_cumprod_t)
+            
+            x_t_prev = x0_coefficient * x0_est + xt_coefficient * x_t
+            x_t_prev = add_variance(predicted_variance, t, x_t_prev)
+            
+            # KEY STEP: FORCE unmasked regions to match original (with noise)
+            # Add appropriate noise to original image for timestep prev_t
+            original_noisy = forward(original_image, prev_t).half().to(device)
+            
+            # Replace unmasked pixels (where mask == 0) with original_noisy
+            # Keep inpainted pixels (where mask == 1) from denoising
+            mask_expanded = mask.unsqueeze(0).unsqueeze(0)  # Add batch and channel dims
+            x_t_prev = mask_expanded * x_t_prev + (1 - mask_expanded) * original_noisy
+            
+            x_t = x_t_prev
+    
+    inpainted = x_t.cpu().detach().numpy()
+    RETURN inpainted</code></pre>
+                </div>
+
+                <p>
+                    I tested inpainting on three images:
+                </p>
+                <ol>
+                    <li><strong>Campanile:</strong> Inpainted the top of the tower</li>
+                    <li><strong>Window:</strong> Inpainted a rectangular region in the center</li>
+                    <li><strong>Person:</strong> Inpainted an elliptical region (face removal)</li>
+                </ol>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/inpainted_campanile.jpg" alt="Inpainted Campanile">
+                    <div class="project-caption">Inpainting results for the Campanile. The top of the tower was masked and filled in by the diffusion model, creating a plausible completion.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/inpainted_window.jpg" alt="Inpainted window">
+                    <div class="project-caption">Inpainting results for a window image. The rectangular masked region was filled with content that matches the surrounding context.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/inpainted_person.jpg" alt="Inpainted person">
+                    <div class="project-caption">Inpainting results for a person image. The elliptical mask (face region) was filled in, demonstrating the model's ability to generate plausible content in masked areas.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.7.3: Text-Conditioned Image-to-image Translation</h2>
+                <p>
+                    By using specific text prompts instead of the generic "a high quality photo", we can guide the 
+                    image-to-image translation process. This combines SDEdit with text conditioning, allowing us to 
+                    transform images according to both the original content and the text description.
+                </p>
+                <p>
+                    I tested text-conditioned SDEdit on:
+                </p>
+                <ol>
+                    <li><strong>Campanile:</strong> Transformed using prompts like "a lithograph of a lighthouse on a cliff" and "an oil painting of a stormy sea"</li>
+                    <li><strong>Two additional images:</strong> Applied the same technique with various artistic style prompts</li>
+                </ol>
+                <p>
+                    The results show that the images gradually look more like the original (as noise decreases) but also 
+                    incorporate elements suggested by the text prompt, creating interesting artistic transformations.
+                </p>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/text_conditioned_campanile_denoising.jpg" alt="Text-conditioned Campanile">
+                    <div class="project-caption">Text-conditioned SDEdit on the Campanile using the prompt "a lithograph of a lighthouse on a cliff". The image transforms to match the artistic style while preserving the original structure.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/sea_text_conditioned_campanile_denoising.jpg" alt="Stormy sea Campanile">
+                    <div class="project-caption">Text-conditioned SDEdit on the Campanile using the prompt "an oil painting of a stormy sea". The transformation creates a dramatic, painterly effect.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/text_conditioned_person_denoising.jpg" alt="Text-conditioned person">
+                    <div class="project-caption">Text-conditioned SDEdit on a person image using the prompt "a photo of a coffee cup with latte art" at noise levels [1, 3, 5, 7, 10, 20]. The model applies the artistic style from the prompt while maintaining the subject's pose and composition.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/text_conditioned_rose_denoising.jpg" alt="Text-conditioned rose">
+                    <div class="project-caption">Text-conditioned SDEdit on a rose image using the prompt "a photo of a cozy library with warm lighting" at noise levels [1, 3, 5, 7, 10, 20]. The prompt guides the transformation to match the desired artistic style.</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.8: Visual Anagrams</h2>
+                <p>
+                    Visual anagrams are optical illusions where an image looks like one thing when viewed normally, but 
+                    reveals a different image when flipped upside down. I implemented this using a technique that 
+                    averages noise estimates from two different prompts—one for the normal orientation and one for the 
+                    flipped orientation.
+                </p>
+                <p>
+                    The algorithm:
+                </p>
+                <ol>
+                    <li>Denoises the image normally with prompt $p_1$ to get noise estimate $\epsilon_1$</li>
+                    <li>Flips the image, denoises with prompt $p_2$ to get $\epsilon_2$, then flips back</li>
+                    <li>Averages the two noise estimates: $\epsilon = \frac{1}{2}(\epsilon_1 + \epsilon_2)$</li>
+                    <li>Performs the denoising step with the averaged estimate</li>
+                </ol>
+
+                <div class="code-container">
+                    <div class="code-title">Visual anagrams implementation (pseudocode)</div>
+                    <pre><code>FUNCTION visual_anagrams(image, i_start, prompt1_embeds, prompt2_embeds,
+                         uncond_prompt_embeds, timesteps, scale=7):
+    """
+    Create a visual anagram: an image that looks like prompt1 when normal,
+    but like prompt2 when flipped upside down.
+    
+    Input:
+        image: Starting image (can be noise or noisy image)
+        i_start: Starting index in timesteps
+        prompt1_embeds: Embeddings for normal orientation prompt
+        prompt2_embeds: Embeddings for flipped orientation prompt
+        uncond_prompt_embeds: Unconditional embeddings
+        timesteps: List of timesteps
+        scale: CFG scale
+    
+    Output:
+        illusion: Image that creates the anagram effect
+    """
+    
+    x_t = image
+    
+    WITH torch.no_grad():
+        
+        FOR i FROM i_start TO len(timesteps) - 2:
+            
+            t = timesteps[i]
+            prev_t = timesteps[i+1]
+            alpha_cumprod_t = alphas_cumprod[t]
+            alpha_cumprod_prev_t = alphas_cumprod[prev_t]
+            alpha_t = alpha_cumprod_t / alpha_cumprod_prev_t
+            beta_t = 1 - alpha_t
+            
+            # COMPUTE NOISE ESTIMATE 1: Normal orientation with prompt1
+            model_output_1_cond = stage_1.unet(
+                x_t, t, encoder_hidden_states=prompt1_embeds, return_dict=False
+            )[0]
+            model_output_1_uncond = stage_1.unet(
+                x_t, t, encoder_hidden_states=uncond_prompt_embeds, return_dict=False
+            )[0]
+            
+            noise_1_cond, predicted_variance = torch.split(model_output_1_cond, x_t.shape[1], dim=1)
+            noise_1_uncond, _ = torch.split(model_output_1_uncond, x_t.shape[1], dim=1)
+            epsilon_1 = noise_1_uncond + scale * (noise_1_cond - noise_1_uncond)
+            
+            # COMPUTE NOISE ESTIMATE 2: Flipped orientation with prompt2
+            x_t_flipped = torch.flip(x_t, dims=[2])  # Flip vertically (upside down)
+            
+            model_output_2_cond = stage_1.unet(
+                x_t_flipped, t, encoder_hidden_states=prompt2_embeds, return_dict=False
+            )[0]
+            model_output_2_uncond = stage_1.unet(
+                x_t_flipped, t, encoder_hidden_states=uncond_prompt_embeds, return_dict=False
+            )[0]
+            
+            noise_2_cond, _ = torch.split(model_output_2_cond, x_t.shape[1], dim=1)
+            noise_2_uncond, _ = torch.split(model_output_2_uncond, x_t.shape[1], dim=1)
+            epsilon_2_flipped = noise_2_uncond + scale * (noise_2_cond - noise_2_uncond)
+            
+            # FLIP BACK to normal orientation
+            epsilon_2 = torch.flip(epsilon_2_flipped, dims=[2])
+            
+            # AVERAGE the two noise estimates
+            epsilon = 0.5 * epsilon_1 + 0.5 * epsilon_2
+            
+            # DENOISE using averaged noise estimate
+            x0_est = (x_t - torch.sqrt(1 - alpha_cumprod_t) * epsilon) / torch.sqrt(alpha_cumprod_t)
+            x0_coefficient = torch.sqrt(alpha_cumprod_prev_t) * beta_t / (1 - alpha_cumprod_t)
+            xt_coefficient = torch.sqrt(alpha_t) * (1 - alpha_cumprod_prev_t) / (1 - alpha_cumprod_t)
+            
+            x_t_prev = x0_coefficient * x0_est + xt_coefficient * x_t
+            x_t_prev = add_variance(predicted_variance, t, x_t_prev)
+            
+            x_t = x_t_prev
+    
+    illusion = x_t.cpu().detach().numpy()
+    RETURN illusion</code></pre>
+                </div>
+
+                <p>
+                    I created two visual anagrams:
+                </p>
+                <ol>
+                    <li><strong>Balloon/Lighthouse:</strong> "a watercolor painting of a hot air balloon" (normal) and "a lithograph of a lighthouse on a cliff" (flipped)</li>
+                    <li><strong>Farmers/Sea:</strong> "an oil painting of a bustling farmer's market" (normal) and "an oil painting of a stormy sea" (flipped)</li>
+                </ol>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/balloon_lighthouse_anagram.jpg" alt="Balloon lighthouse anagram">
+                    <div class="project-caption">Visual anagram: When viewed normally, the image shows "a watercolor painting of a hot air balloon". When flipped upside down, it reveals "a lithograph of a lighthouse on a cliff".</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/farmers_sea_anagram.jpg" alt="Farmers sea anagram">
+                    <div class="project-caption">Visual anagram: Normal orientation shows "an oil painting of a bustling farmer's market", while the flipped version reveals "an oil painting of a stormy sea".</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Part 1.9: Hybrid Images</h2>
+                <p>
+                    Hybrid images combine two different prompts by mixing their frequency components, similar to the 
+                    hybrid images from Project 2. I implemented Factorized Diffusion, which creates a composite noise 
+                    estimate by combining low frequencies from one prompt with high frequencies from another.
+                </p>
+                <p>
+                    The algorithm:
+                </p>
+                <ol>
+                    <li>Compute noise estimates $\epsilon_1$ and $\epsilon_2$ for prompts $p_1$ and $p_2$</li>
+                    <li>Apply Gaussian blur to get low-pass versions: $\epsilon_{1,\text{low}}$, $\epsilon_{2,\text{low}}$</li>
+                    <li>Compute high-pass: $\epsilon_{2,\text{high}} = \epsilon_2 - \epsilon_{2,\text{low}}$</li>
+                    <li>Combine: $\epsilon = \epsilon_{1,\text{low}} + \epsilon_{2,\text{high}}$</li>
+                </ol>
+
+                <div class="code-container">
+                    <div class="code-title">Hybrid images implementation (pseudocode)</div>
+                    <pre><code>FUNCTION make_hybrids(image, i_start, prompt1_embeds, prompt2_embeds,
+                     uncond_prompt_embeds, timesteps, scale=7):
+    """
+    Create hybrid images using Factorized Diffusion.
+    Combines low frequencies from prompt1 with high frequencies from prompt2.
+    
+    Input:
+        image: Starting image (typically noise)
+        i_start: Starting index in timesteps
+        prompt1_embeds: Embeddings for low-frequency prompt (visible from far)
+        prompt2_embeds: Embeddings for high-frequency prompt (visible up close)
+        uncond_prompt_embeds: Unconditional embeddings
+        timesteps: List of timesteps
+        scale: CFG scale
+    
+    Output:
+        hybrid: Hybrid image combining both prompts
+    """
+    
+    x_t = image
+    
+    WITH torch.no_grad():
+        
+        FOR i FROM i_start TO len(timesteps) - 2:
+            
+            t = timesteps[i]
+            prev_t = timesteps[i+1]
+            alpha_cumprod_t = alphas_cumprod[t]
+            alpha_cumprod_prev_t = alphas_cumprod[prev_t]
+            alpha_t = alpha_cumprod_t / alpha_cumprod_prev_t
+            beta_t = 1 - alpha_t
+            
+            # COMPUTE NOISE ESTIMATE 1: For prompt1 (low frequencies)
+            model_output_1_cond = stage_1.unet(
+                x_t, t, encoder_hidden_states=prompt1_embeds, return_dict=False
+            )[0]
+            model_output_1_uncond = stage_1.unet(
+                x_t, t, encoder_hidden_states=uncond_prompt_embeds, return_dict=False
+            )[0]
+            
+            noise_1_cond, predicted_variance = torch.split(model_output_1_cond, x_t.shape[1], dim=1)
+            noise_1_uncond, _ = torch.split(model_output_1_uncond, x_t.shape[1], dim=1)
+            epsilon_1 = noise_1_uncond + scale * (noise_1_cond - noise_1_uncond)
+            
+            # COMPUTE NOISE ESTIMATE 2: For prompt2 (high frequencies)
+            model_output_2_cond = stage_1.unet(
+                x_t, t, encoder_hidden_states=prompt2_embeds, return_dict=False
+            )[0]
+            model_output_2_uncond = stage_1.unet(
+                x_t, t, encoder_hidden_states=uncond_prompt_embeds, return_dict=False
+            )[0]
+            
+            noise_2_cond, _ = torch.split(model_output_2_cond, x_t.shape[1], dim=1)
+            noise_2_uncond, _ = torch.split(model_output_2_uncond, x_t.shape[1], dim=1)
+            epsilon_2 = noise_2_uncond + scale * (noise_2_cond - noise_2_uncond)
+            
+            # FREQUENCY DECOMPOSITION using Gaussian blur
+            # Low-pass filter: blur removes high frequencies
+            epsilon_1_lowpass = TF.gaussian_blur(epsilon_1, kernel_size=33, sigma=2)
+            epsilon_2_lowpass = TF.gaussian_blur(epsilon_2, kernel_size=33, sigma=2)
+            
+            # High-pass filter: subtract low-pass from original
+            epsilon_2_highpass = epsilon_2 - epsilon_2_lowpass
+            
+            # COMBINE: low frequencies from prompt1, high frequencies from prompt2
+            epsilon = epsilon_1_lowpass + epsilon_2_highpass
+            
+            # DENOISE using composite noise estimate
+            x0_est = (x_t - torch.sqrt(1 - alpha_cumprod_t) * epsilon) / torch.sqrt(alpha_cumprod_t)
+            x0_coefficient = torch.sqrt(alpha_cumprod_prev_t) * beta_t / (1 - alpha_cumprod_t)
+            xt_coefficient = torch.sqrt(alpha_t) * (1 - alpha_cumprod_prev_t) / (1 - alpha_cumprod_t)
+            
+            x_t_prev = x0_coefficient * x0_est + xt_coefficient * x_t
+            x_t_prev = add_variance(predicted_variance, t, x_t_prev)
+            
+            x_t = x_t_prev
+    
+    hybrid = x_t.cpu().detach().numpy()
+    RETURN hybrid</code></pre>
+                </div>
+
+                <p>
+                    The result is an image that looks like prompt $p_1$ when viewed from far away (low frequencies 
+                    dominate) and like prompt $p_2$ when viewed up close (high frequencies dominate).
+                </p>
+                <p>
+                    I created two hybrid images:
+                </p>
+                <ol>
+                    <li><strong>Cat/Meadow:</strong> "a photo of a cat sleeping on a windowsill" (low-pass) and "a watercolor painting of a wildflower meadow" (high-pass)</li>
+                    <li><strong>Sea/Branches:</strong> "an oil painting of a stormy sea" (low-pass) and "a photo of frost on winter branches" (high-pass)</li>
+                </ol>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/cat_meadow_hybrid.jpg" alt="Cat meadow hybrid">
+                    <div class="project-caption">Hybrid image combining "a photo of a cat sleeping on a windowsill" (low frequencies, visible from far) and "a watercolor painting of a wildflower meadow" (high frequencies, visible up close).</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/branch_sea_hybrid.jpg" alt="Sea branches hybrid">
+                    <div class="project-caption">Hybrid image combining "an oil painting of a stormy sea" (low frequencies) and "a photo of frost on winter branches" (high frequencies).</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/proj5a_imgs/cat_lighthouse_hybrid.jpg" alt="Cat lighthouse hybrid">
+                    <div class="project-caption">Hybrid image combining "a photo of a cat sleeping on a windowsill" (low frequencies) and "a lithograph of a lighthouse on a cliff" (high frequencies).</div>
+                </div>
+            </div>
+
+            <div class="project-section">
+                <h2>Reflections</h2>
+                <p>
+                    This project provided a deep dive into diffusion models and their applications. Key takeaways:
+                </p>
+                <ul>
+                    <li><strong>Iterative denoising is crucial:</strong> Single-step denoising struggles at high noise levels, but iterative denoising can recover high-quality images from pure noise.</li>
+                    <li><strong>CFG dramatically improves quality:</strong> Classifier-Free Guidance is a simple but powerful technique that significantly enhances image generation quality.</li>
+                    <li><strong>Diffusion models are versatile:</strong> The same underlying framework can be adapted for inpainting, image editing, visual anagrams, and hybrid images.</li>
+                    <li><strong>Text conditioning is powerful:</strong> By using different prompts, we can guide the generation process to create specific artistic styles or content.</li>
+                    <li><strong>Frequency domain insights:</strong> Combining frequency-domain techniques (like in hybrid images) with diffusion models opens up creative possibilities.</li>
+                </ul>
+                <p>
+                    The project demonstrates that modern generative AI models are not just black boxes—by understanding 
+                    their internal mechanisms, we can adapt them for creative and practical applications in computational 
+                    photography.
+                </p>
+            </div>
+
+        </div>
+    </main>
+    <script src="../ascii-loader.js"></script>
+</body>
+</html>
+
