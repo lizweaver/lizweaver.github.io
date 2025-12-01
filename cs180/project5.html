@@ -213,15 +213,15 @@
                 </p>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/step250_gauss_blur.jpg" alt="Gaussian blur denoising at t=250">
-                    <div class="project-caption">Gaussian blur denoising at t=250 using kernel size 15. The blur reduces noise but also removes important image details.</div>
+                    <div class="project-caption">Gaussian blur denoising at t=250 using kernel size 7, 11, 15. The blur reduces noise but also removes important image details. Kernel size 15 almost removes the noise.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/step500_gauss_blur.jpg" alt="Gaussian blur denoising at t=500">
-                    <div class="project-caption">Gaussian blur denoising at t=500 using kernel size 23. At higher noise levels, Gaussian blur becomes increasingly ineffective.</div>
+                    <div class="project-caption">Gaussian blur denoising at t=500 using kernel size 15, 19, 23. At higher noise levels, Gaussian blur becomes increasingly ineffective. Kernel size 23 almost removes the noise, but the campanile's windows are completely lost.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/step750_gauss_blur.jpg" alt="Gaussian blur denoising at t=750">
-                    <div class="project-caption">Gaussian blur denoising at t=750 using kernel size 31. The classical method fails to recover meaningful structure from heavily noisy images.</div>
+                    <div class="project-caption">Gaussian blur denoising at t=750 using kernel size 23, 27, 31. The classical method fails to recover meaningful structure from heavily noisy images. Kernel size 31 removes some noise from the sky, but at this point the campanile is extremely hard to make out.</div>
                 </div>
             </div>
 
@@ -258,11 +258,7 @@
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/denoising_750.png" alt="One-step denoising at t=750">
-                    <div class="project-caption">One-step denoising at t=750: Original image (left), noisy image (middle), and denoised estimate (right). At this very high noise level, single-step denoising struggles significantly, demonstrating the need for iterative denoising.</div>
-                </div>
-                <div class="image-container">
-                    <img src="project5/proj5a_imgs/iterative_vs_onestep.jpg" alt="One-step denoising comparison">
-                    <div class="project-caption">One-step denoising comparison: The diffusion model successfully recovers structure from noisy images, though quality decreases with higher noise levels.</div>
+                    <div class="project-caption">One-step denoising at t=750: Original image (left), noisy image (middle), and denoised estimate (right). At this very high noise level, the structure of the campanile is starting to be lost, the top now having more of a dome-like shape.</div>
                 </div>
             </div>
 
@@ -371,11 +367,11 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                 </p>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/iterative_denoise_5_loop.jpg" alt="Iterative denoising progression">
-                    <div class="project-caption">Iterative denoising progression showing every 5th step, starting from timestep 90 (i_start=10). The image gradually becomes cleaner as noise is removed iteratively. The final result is much better than one-step denoising or Gaussian blur.</div>
+                    <div class="project-caption">Iterative denoising progression showing every 5th step, starting from timestep 90 (i_start=10). The image gradually becomes cleaner as noise is removed iteratively. The final result is much better than one-step denoising or Gaussian blur. From left to right, the timesteps are 690, 540, 390, 240, and 90.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/iterative_vs_onestep.jpg" alt="Comparison of denoising methods">
-                    <div class="project-caption">Comparison of different denoising methods: original image, iteratively denoised result, one-step denoising (much worse quality), and Gaussian blur filtering (kernel size 5, sigma=2). This demonstrates that iterative denoising produces significantly better results than single-step denoising or classical filtering methods.</div>
+                    <div class="project-caption">Comparison of different denoising methods: original noisy image, iteratively denoised result, one-step denoising (much worse quality), and Gaussian blur filtering (kernel size 5, sigma=2). This demonstrates that iterative denoising produces significantly better results than single-step denoising or classical filtering methods.</div>
                 </div>
             </div>
 
@@ -684,7 +680,7 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                 </p>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/text_conditioned_campanile_denoising.jpg" alt="Text-conditioned Campanile">
-                    <div class="project-caption">Text-conditioned Campanile: SDEdit using the prompt "a lithograph of a lighthouse on a cliff" at starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, creating more dramatic transformations to match the artistic style. Higher i_start values (right) add less noise, preserving more of the original Campanile structure while still incorporating the prompt's style.</div>
+                    <div class="project-caption">Text-conditioned Campanile: SDEdit using the prompt "a lithograph of a lighthouse on a cliff" at starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, creating more dramatic transformations to match the artistic style. Higher i_start values (right) add less noise, preserving more of the original Campanile image.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/sea_text_conditioned_campanile_denoising.jpg" alt="Stormy sea Campanile">
@@ -692,11 +688,11 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/text_conditioned_person_denoising.jpg" alt="Text-conditioned person">
-                    <div class="project-caption">Text-conditioned person: SDEdit using the prompt "a photo of a coffee cup with latte art" at starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, creating more dramatic style transformations. Higher i_start values (right) add less noise, maintaining more of the subject's original pose and composition while applying the prompt's artistic style.</div>
+                    <div class="project-caption">Text-conditioned person: SDEdit using the prompt "a photo of a coffee cup with latte art" at starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, creating more dramatic style transformations. Higher i_start values (right) add less noise, resulting in subtler style changes that preserve more of the original image.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/text_conditioned_rose_denoising.jpg" alt="Text-conditioned rose">
-                    <div class="project-caption">Text-conditioned rose: SDEdit using the prompt "a photo of a cozy library with warm lighting" at starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, creating more dramatic transformations guided by the prompt. Higher i_start values (right) add less noise, preserving more of the original image while incorporating the prompt's lighting and style.</div>
+                    <div class="project-caption">Text-conditioned rose: SDEdit using the prompt "a photo of a cozy library with warm lighting" at starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, creating more dramatic transformations guided by the prompt. Higher i_start values (right) add less noise, resulting in subtler style changes that preserve more of the original image.</div>
                 </div>
             </div>
 
@@ -903,11 +899,12 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                     dominate) and like prompt $p_2$ when viewed up close (high frequencies dominate).
                 </p>
                 <p>
-                    I created two hybrid images:
+                    I created three hybrid images:
                 </p>
                 <ol>
                     <li><strong>Cat/Meadow:</strong> "a photo of a cat sleeping on a windowsill" (low-pass) and "a watercolor painting of a wildflower meadow" (high-pass)</li>
                     <li><strong>Piano Player/Frost:</strong> "a sketch of a piano player performing" (low-pass) and "a photo of frost on winter branches" (high-pass)</li>
+                    <li><strong>Cat/Lighthouse:</strong> "a photo of a cat sleeping on a windowsill" (low-pass) and "a lithograph of a lighthouse on a cliff" (high-pass)</li>
                 </ol>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/cat_meadow_hybrid.jpg" alt="Cat meadow hybrid">
