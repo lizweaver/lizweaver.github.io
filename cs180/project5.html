@@ -194,16 +194,8 @@
                 </div>
 
                 <div class="image-container">
-                    <img src="project5/proj5a_imgs/denoising_250.png" alt="Noisy Campanile at t=250">
-                    <div class="project-caption">Noisy Campanile at t=250. The image shows moderate noise while still retaining recognizable structure.</div>
-                </div>
-                <div class="image-container">
-                    <img src="project5/proj5a_imgs/denoising_500.png" alt="Noisy Campanile at t=500">
-                    <div class="project-caption">Noisy Campanile at t=500. The noise level has increased significantly, making details harder to distinguish.</div>
-                </div>
-                <div class="image-container">
-                    <img src="project5/proj5a_imgs/denoising_750.png" alt="Noisy Campanile at t=750">
-                    <div class="project-caption">Noisy Campanile at t=750. At this high noise level, the image is almost pure noise with only faint traces of the original structure.</div>
+                    <img src="project5/proj5a_imgs/campanile_noise_levels.jpg" alt="Campanile at different noise levels">
+                    <div class="project-caption">Campanile at different noise levels: The forward process applied to the Campanile at timesteps t=250, t=500, and t=750. As the timestep increases, more noise is added to the image, progressively obscuring the original structure.</div>
                 </div>
             </div>
 
@@ -522,7 +514,7 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                     original image (at low noise) to more edited versions (at higher noise).
                 </p>
                 <div class="image-container">
-                    <img src="project5/proj5a_imgs/campanile_noise_levels.jpg" alt="Campanile SDEdit at different noise levels">
+                    <img src="project5/proj5a_imgs/campanile_img_to_img.jpg" alt="Campanile SDEdit at different noise levels">
                     <div class="project-caption">Campanile SDEdit at different noise levels [1, 3, 5, 7, 10, 20]. Lower noise levels preserve more of the original, while higher levels create more dramatic edits.</div>
                 </div>
                 <div class="image-container">
