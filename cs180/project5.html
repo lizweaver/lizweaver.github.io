@@ -509,21 +509,24 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                     "hallucinate" new content to denoise the image, and this creativity enables editing.
                 </p>
                 <p>
-                    I tested SDEdit on the Campanile image using noise levels [1, 3, 5, 7, 10, 20] (corresponding to 
-                    different starting indices in the strided timesteps). The results show a gradual transition from the 
-                    original image (at low noise) to more edited versions (at higher noise).
+                    I tested SDEdit on the Campanile image using starting indices [1, 3, 5, 7, 10, 20] (corresponding to 
+                    different starting points in the strided timesteps). The parameter <code>i_start</code> controls how much 
+                    noise is added: lower values (like i_start=1) mean starting from a noisier state, resulting in more 
+                    dramatic transformations that look less like the original. Higher values (like i_start=20) mean starting 
+                    from a less noisy state, resulting in images that look more similar to the original. The results show 
+                    a gradual transition from heavily edited versions (left) to images that closely match the original (right).
                 </p>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/campanile_img_to_img.jpg" alt="Campanile SDEdit at different noise levels">
-                    <div class="project-caption">Campanile SDEdit at different noise levels [1, 3, 5, 7, 10, 20]. Lower noise levels preserve more of the original, while higher levels create more dramatic edits.</div>
+                    <div class="project-caption">Campanile SDEdit at different starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) correspond to more noise added, creating more dramatic edits that look less like the original. Higher i_start values (right) correspond to less noise, preserving more of the original appearance.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/loki_img_to_img.jpg" alt="Loki SDEdit at different noise levels">
-                    <div class="project-caption">Loki SDEdit at different noise levels [1, 3, 5, 7, 10, 20]. The diffusion model gradually transforms the image while preserving the overall composition.</div>
+                    <div class="project-caption">Loki SDEdit at different starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, resulting in more transformed images. Higher i_start values (right) add less noise, resulting in images that look more similar to the original.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/windmill_img_to_img.jpg" alt="Windmill SDEdit at different noise levels">
-                    <div class="project-caption">Windmill SDEdit at different noise levels [1, 3, 5, 7, 10, 20]. The edits become more pronounced as the noise level increases, demonstrating the controllable nature of SDEdit.</div>
+                    <div class="project-caption">Windmill SDEdit at different starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. The transformation strength decreases from left to right: i_start=1 produces the most dramatic edit (most noise), while i_start=20 produces the most conservative edit (least noise, closest to original).</div>
                 </div>
             </div>
 
@@ -542,20 +545,21 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                     <li><strong>Hand-drawn images:</strong> Two sketches I drew using the provided drawing interface</li>
                 </ol>
                 <p>
-                    For each image, I applied SDEdit at noise levels [1, 3, 5, 7, 10, 20] to show the progression from 
-                    the original drawing to a more realistic image.
+                    For each image, I applied SDEdit at starting indices [1, 3, 5, 7, 10, 20] to show the progression from 
+                    the original drawing to a more realistic image. Lower i_start values add more noise, creating more 
+                    dramatic transformations, while higher values preserve more of the original drawing.
                 </p>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/web_img_to_img_all_i_start.jpg" alt="Web image SDEdit">
-                    <div class="project-caption">Web image SDEdit: Applied to a web image (drawing tutorial) at different noise levels [1, 3, 5, 7, 10, 20]. The process gradually transforms the stylized drawing into a more realistic image.</div>
+                    <div class="project-caption">Web image SDEdit: Applied to a web image (drawing tutorial) at different starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, creating more dramatic transformations from stylized drawing to realistic image. Higher i_start values (right) add less noise, preserving more of the original drawing style.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/dog_drawing_img_to_img_all_i_start.jpg" alt="Hand-drawn dog SDEdit">
-                    <div class="project-caption">Hand-drawn dog SDEdit: Applied to a hand-drawn dog sketch at different noise levels [1, 3, 5, 7, 10, 20]. The diffusion model successfully interprets the sketch and generates a realistic image while preserving the original composition.</div>
+                    <div class="project-caption">Hand-drawn dog SDEdit: Applied to a hand-drawn dog sketch at different starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, resulting in more realistic interpretations. Higher i_start values (right) add less noise, keeping the image closer to the original sketch while still adding realistic details.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/mountain_drawing_img_to_img_all_i_start.jpg" alt="Hand-drawn mountain SDEdit">
-                    <div class="project-caption">Hand-drawn mountain SDEdit: Applied to a hand-drawn mountain landscape at different noise levels [1, 3, 5, 7, 10, 20]. The model adds realistic details like texture, lighting, and depth while maintaining the overall structure of the drawing.</div>
+                    <div class="project-caption">Hand-drawn mountain SDEdit: Applied to a hand-drawn mountain landscape at different starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, creating more dramatic transformations with realistic texture, lighting, and depth. Higher i_start values (right) add less noise, maintaining more of the original drawing structure.</div>
                 </div>
             </div>
 
@@ -673,24 +677,26 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                     <li><strong>Two additional images:</strong> Applied the same technique with various artistic style prompts</li>
                 </ol>
                 <p>
-                    The results show that the images gradually look more like the original (as noise decreases) but also 
-                    incorporate elements suggested by the text prompt, creating interesting artistic transformations.
+                    The results show that the images gradually look more like the original (as i_start increases and less 
+                    noise is added) but also incorporate elements suggested by the text prompt, creating interesting artistic 
+                    transformations. Lower i_start values add more noise, creating more dramatic style transformations, while 
+                    higher i_start values add less noise, preserving more of the original image structure.
                 </p>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/text_conditioned_campanile_denoising.jpg" alt="Text-conditioned Campanile">
-                    <div class="project-caption">Text-conditioned Campanile: SDEdit using the prompt "a lithograph of a lighthouse on a cliff" at noise levels [1, 3, 5, 7, 10, 20]. The image transforms to match the artistic style while preserving the original structure.</div>
+                    <div class="project-caption">Text-conditioned Campanile: SDEdit using the prompt "a lithograph of a lighthouse on a cliff" at starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, creating more dramatic transformations to match the artistic style. Higher i_start values (right) add less noise, preserving more of the original Campanile structure while still incorporating the prompt's style.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/sea_text_conditioned_campanile_denoising.jpg" alt="Stormy sea Campanile">
-                    <div class="project-caption">Stormy sea Campanile: Text-conditioned SDEdit using the prompt "an oil painting of a stormy sea" at noise levels [1, 3, 5, 7, 10, 20]. The transformation creates a dramatic, painterly effect.</div>
+                    <div class="project-caption">Stormy sea Campanile: Text-conditioned SDEdit using the prompt "an oil painting of a stormy sea" at starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, creating more dramatic, painterly transformations. Higher i_start values (right) add less noise, resulting in subtler style changes that preserve more of the original image.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/text_conditioned_person_denoising.jpg" alt="Text-conditioned person">
-                    <div class="project-caption">Text-conditioned person: SDEdit using the prompt "a photo of a coffee cup with latte art" at noise levels [1, 3, 5, 7, 10, 20]. The model applies the artistic style from the prompt while maintaining the subject's pose and composition.</div>
+                    <div class="project-caption">Text-conditioned person: SDEdit using the prompt "a photo of a coffee cup with latte art" at starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, creating more dramatic style transformations. Higher i_start values (right) add less noise, maintaining more of the subject's original pose and composition while applying the prompt's artistic style.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/proj5a_imgs/text_conditioned_rose_denoising.jpg" alt="Text-conditioned rose">
-                    <div class="project-caption">Text-conditioned rose: SDEdit using the prompt "a photo of a cozy library with warm lighting" at noise levels [1, 3, 5, 7, 10, 20]. The prompt guides the transformation to match the desired artistic style.</div>
+                    <div class="project-caption">Text-conditioned rose: SDEdit using the prompt "a photo of a cozy library with warm lighting" at starting indices [1, 3, 5, 7, 10, 20] (left to right), with the original image on the rightmost side. Lower i_start values (left) add more noise, creating more dramatic transformations guided by the prompt. Higher i_start values (right) add less noise, preserving more of the original image while incorporating the prompt's lighting and style.</div>
                 </div>
             </div>
 
