@@ -919,6 +919,562 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                     <div class="project-caption">Cat lighthouse hybrid: Combining "a photo of a cat sleeping on a windowsill" (low frequencies) and "a lithograph of a lighthouse on a cliff" (high frequencies).</div>
                 </div>
             </div>
+            <div class="project-section">
+                <div class="project-header">
+                    <h1>Part B: Flow Matching from Scratch (MNIST)</h1>
+                </div>
+                <p>
+                    For Part B, I implemented and trained UNet-based denoisers and flow-matching models from scratch on the 
+                    MNIST dataset. This project involved building the UNet architecture, implementing time and class conditioning, 
+                    and training models to learn flow fields that transform noise into realistic digit images. All experiments 
+                    were conducted using PyTorch on Google Colab with GPU acceleration.
+                </p>
+
+                <h3>Part 1: Single-Step Denoising UNet</h3>
+                <p>
+                    I first implemented an unconditional UNet architecture to perform single-step denoising. The UNet consists 
+                    of an encoder-decoder structure with skip connections, allowing it to preserve spatial details while learning 
+                    hierarchical features. The architecture includes:
+                </p>
+                <ul>
+                    <li><strong>Basic operations:</strong> Conv (3×3 conv + BatchNorm + GELU), DownConv (stride-2 downsampling), 
+                        UpConv (stride-2 upsampling), Flatten (7×7→1×1 via AvgPool), Unflatten (1×1→7×7 via ConvTranspose)</li>
+                    <li><strong>Composed blocks:</strong> ConvBlock (two Conv layers), DownBlock (DownConv + ConvBlock), 
+                        UpBlock (UpConv + ConvBlock)</li>
+                    <li><strong>Architecture:</strong> Input → ConvBlock → DownBlock → DownBlock → Flatten → Unflatten → 
+                        UpBlock → UpBlock → ConvBlock → Output, with skip connections at each resolution level</li>
+                </ul>
+                <div class="image-container">
+                    <img src="project5/project5b_images/Screenshot 2025-12-05 at 1.09.38 PM.png" alt="UNet architecture diagram">
+                    <div class="project-caption">Unconditional UNet architecture showing the encoder-decoder structure with skip connections. The network downsamples through two DownBlocks, flattens to a 1×1 representation, then upsamples back with skip connections preserving spatial details.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/Screenshot 2025-12-05 at 1.09.45 PM.png" alt="UNet operations diagram">
+                    <div class="project-caption">Standard UNet operations: Conv (convolutional layer), DownConv (downsampling), UpConv (upsampling), Flatten (average pooling to 1×1), Unflatten (conv transpose to 7×7), and Concat (channel-wise concatenation for skip connections).</div>
+                </div>
+                <p>
+                    The training objective was to minimize the L2 loss between the denoised output and the clean image:
+                </p>
+                $$L = \mathbb{E}_{z, x} \|D_{\theta}(z) - x\|^2$$
+                <p>
+                    where $z = x + \sigma \epsilon$ is the noisy image ($\sigma = 0.5$), $x$ is the clean image, and 
+                    $D_{\theta}$ is the UNet denoiser. I used Adam optimizer with learning rate $10^{-4}$, batch size 256, 
+                    and trained for 5 epochs. The noise was added dynamically during training (different $\epsilon$ each epoch) 
+                    to improve generalization.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Single-step denoising training (pseudocode)</div>
+                    <pre><code>FUNCTION train_single_step_denoiser(unet, train_loader, num_epochs, noise_level=0.5):
+    """
+    Train a UNet to denoise noisy images in a single step.
+    
+    Input:
+        unet: UnconditionalUNet model
+        train_loader: DataLoader for training images
+        num_epochs: Number of training epochs
+        noise_level: Standard deviation σ for noise (default 0.5)
+    
+    Output:
+        trained_unet: Trained denoiser model
+        train_losses: List of training losses
+    """
+    
+    optimizer = Adam(unet.parameters(), lr=1e-4)
+    criterion = MSELoss()
+    train_losses = []
+    
+    FOR epoch IN range(num_epochs):
+        FOR batch IN train_loader:
+            // Get clean images from batch
+            x = batch.images  // Clean images x
+            
+            // ADD NOISE dynamically (different ε each epoch)
+            ε = sample_gaussian_noise(shape=x.shape)  // ε ~ N(0, I)
+            z = x + noise_level * ε  // Noisy image z = x + σ·ε
+            
+            // PREDICT denoised image
+            x_pred = unet(z)  // D_θ(z)
+            
+            // COMPUTE L2 loss
+            loss = criterion(x_pred, x)  // ||D_θ(z) - x||²
+            
+            // BACKPROPAGATE and update
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+            train_losses.append(loss.item())
+    
+    RETURN unet, train_losses
+    
+    Key insight: Noise is added dynamically during training (different ε each epoch)
+                 to improve generalization. The model learns to map noisy images
+                 back to clean images via L2 regression.</code></pre>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/visualizing_noising_process_all_sigmas.jpg" alt="Noising process across sigmas">
+                    <div class="project-caption">Noising process visualization across different σ values.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part121_train_loss.jpg" alt="Training loss for single-step denoiser">
+                    <div class="project-caption">Training loss curve for the single-step denoiser (5 epochs, batch size 256, Adam 1e-4).</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part121_test_set_epoch0_results.jpg" alt="Epoch 1 denoising results">
+                    <div class="project-caption">Test-set denoising results with noise level 0.5 after epoch 1.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part121_test_set_epoch4_results.jpg" alt="Epoch 5 denoising results">
+                    <div class="project-caption">Test-set denoising results with noise level 0.5 after epoch 5.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part122_ood_test_results.jpg" alt="OOD sigma denoising results">
+                    <div class="project-caption">Out-of-distribution σ sweep on the trained denoiser, holding the same test digits and varying σ. The model was trained only on σ=0.5, so this tests generalization to different noise levels. Performance degrades for very low (σ=0.0, 0.2) and very high (σ=0.8, 1.0) noise levels, as expected for a model trained on a specific noise level.</div>
+                </div>
+                <p>
+                    <strong>Out-of-distribution analysis:</strong> The model was trained exclusively on noise level $\sigma = 0.5$. 
+                    When tested on different noise levels ($\sigma \in \{0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0\}$), performance 
+                    degrades for noise levels far from the training distribution. At very low noise ($\sigma = 0.0, 0.2$), the 
+                    model may over-denoise or introduce artifacts. At very high noise ($\sigma = 0.8, 1.0$), the model struggles 
+                    to recover structure. This demonstrates the importance of matching the training and inference noise distributions, 
+                    or using a more flexible approach like flow matching that handles multiple noise levels.
+                </p>
+                <h4>Part 1.2.3: Denoising Pure Noise</h4>
+                <p>
+                    To explore whether single-step denoising can work as a generative model, I trained a separate UNet to denoise 
+                    pure Gaussian noise ($z = \epsilon \sim \mathcal{N}(0, I)$) and predict clean images. The training objective 
+                    remains the same L2 loss, but now the input is always pure noise rather than a noisy version of a clean image.
+                </p>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part123_train_loss.jpg" alt="Training loss when denoising pure noise">
+                    <div class="project-caption">Training loss when training the denoiser on pure Gaussian noise inputs (5 epochs).</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part123_test_set_epoch0_results.jpg" alt="Pure noise epoch 1 outputs">
+                    <div class="project-caption">Generated samples from the pure-noise denoiser after epoch 1.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part123_test_set_epoch4_results.jpg" alt="Pure noise epoch 5 outputs">
+                    <div class="project-caption">Generated samples from the pure-noise denoiser after epoch 5. Outputs cluster around digit-like centroids, consistent with the MSE objective pulling toward the dataset mean.</div>
+                </div>
+                <p>
+                    <strong>Analysis of pure noise denoising:</strong> When training the denoiser on pure Gaussian noise 
+                    ($z = \epsilon \sim \mathcal{N}(0, I)$), the model learns to predict the mean of the training distribution. 
+                    With an MSE loss, the optimal prediction is the centroid (average) of all training images. This explains why 
+                    the outputs appear as blurry, digit-like shapes that represent the "average digit" across all classes—the 
+                    model is essentially learning to predict the dataset mean rather than generating specific digits. This 
+                    demonstrates why single-step denoising is insufficient for generative tasks; we need iterative denoising 
+                    with time conditioning to generate diverse, high-quality samples.
+                </p>
+
+                <h3>Part 2: Flow Matching</h3>
+                <p>
+                    To enable iterative generation from noise, I implemented flow matching models that learn flow fields to 
+                    transform noise into realistic images. The models predict the "flow" (velocity vector) that moves from 
+                    the noisy state toward the clean state, enabling iterative denoising via Euler integration.
+                </p>
+
+                <h4>Part 2.1: Adding Time Conditioning to UNet</h4>
+                <p>
+                    I first implemented a time-conditioned UNet that learns a flow field. Instead of directly predicting the 
+                    clean image, the model predicts the flow that moves from the noisy state toward the clean state. The key 
+                    innovation is conditioning the UNet on a normalized timestep $t \in [0, 1]$, where $t=0$ corresponds to 
+                    pure noise and $t=1$ corresponds to clean data.
+                </p>
+                <p>
+                    <strong>Time conditioning mechanism:</strong> I added two FCBlock modules (fully-connected blocks with two 
+                    linear layers and GELU activations) to inject the timestep $t$ into the UNet. The conditioning is applied 
+                    via element-wise multiplication at two locations: after the unflatten operation and after the first upsampling 
+                    block. Specifically:
+                </p>
+                <ul>
+                    <li>$t_1 = \text{FCBlock}_1(t)$ is applied to the unflattened feature map: $\text{unflatten} = \text{unflatten} \odot t_1$</li>
+                    <li>$t_2 = \text{FCBlock}_2(t)$ is applied after the first upsampling: $\text{up}_1 = \text{up}_1 \odot t_2$</li>
+                </ul>
+                <div class="image-container">
+                    <img src="project5/project5b_images/Screenshot 2025-12-05 at 1.09.54 PM.png" alt="Time-conditioned UNet architecture">
+                    <div class="project-caption">Time-conditioned UNet architecture showing the FCBlock modules (fc1_t and fc2_t) that inject the normalized timestep $t$ into the network via element-wise multiplication at the unflatten and up1 stages.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/Screenshot 2025-12-05 at 1.10.03 PM.png" alt="FCBlock architecture">
+                    <div class="project-caption">FCBlock (fully-connected block) architecture used for conditioning. It consists of two linear layers with GELU activation, transforming the conditioning signal (scalar $t$ or one-hot vector $c$) into feature maps that modulate the UNet activations.</div>
+                </div>
+                <h4>Part 2.2: Training the Time-Conditioned UNet</h4>
+                <p>
+                    <strong>Flow matching objective:</strong> During training, I sample a random timestep $t \sim \mathcal{U}(0, 1)$ 
+                    and create an intermediate noisy image via linear interpolation:
+                </p>
+                $$x_t = (1-t) \cdot \epsilon + t \cdot x_1$$
+                <p>
+                    where $\epsilon \sim \mathcal{N}(0, I)$ is pure noise and $x_1$ is a clean training image. The ground-truth 
+                    flow is $v = x_1 - \epsilon$, and the model predicts $\hat{v} = u_{\theta}(x_t, t)$. The loss is:
+                </p>
+                $$L = \mathbb{E}_{x_1, \epsilon, t} \|u_{\theta}(x_t, t) - (x_1 - \epsilon)\|^2$$
+
+                <div class="code-container">
+                    <div class="code-title">Flow matching training (pseudocode)</div>
+                    <pre><code>FUNCTION train_flow_matching(time_conditioned_unet, train_loader, num_epochs):
+    """
+    Train a time-conditioned UNet to predict flow fields for iterative denoising.
+    
+    Input:
+        time_conditioned_unet: TimeConditionalUNet model
+        train_loader: DataLoader for training images
+        num_epochs: Number of training epochs
+    
+    Output:
+        trained_unet: Trained flow matching model
+        train_losses: List of training losses
+    """
+    
+    optimizer = Adam(time_conditioned_unet.parameters(), lr=1e-2)
+    scheduler = ExponentialLR(optimizer, gamma=0.1^(1/10))
+    criterion = MSELoss()
+    train_losses = []
+    
+    FOR epoch IN range(num_epochs):
+        FOR batch IN train_loader:
+            // Get clean images from batch
+            x_1 = batch.images  // Clean images x₁
+            
+            // SAMPLE random timestep t ~ U(0, 1)
+            N = x_1.shape[0]
+            t = sample_uniform(N, min=0, max=1)  // t ~ U(0, 1)
+            t_normalized = t.view(N, 1)  // Reshape for UNet input
+            
+            // SAMPLE noise
+            ε = sample_gaussian_noise(shape=x_1.shape)  // ε ~ N(0, I)
+            
+            // CREATE intermediate noisy image via linear interpolation
+            // x_t = (1-t)·ε + t·x₁
+            x_t = (1 - t.view(N, 1, 1, 1)) * ε + t.view(N, 1, 1, 1) * x_1
+            
+            // COMPUTE ground-truth flow
+            v_true = x_1 - ε  // Flow from noise to clean image
+            
+            // PREDICT flow using time-conditioned UNet
+            v_pred = time_conditioned_unet(x_t, t_normalized)  // u_θ(x_t, t)
+            
+            // COMPUTE L2 loss
+            loss = criterion(v_pred, v_true)  // ||u_θ(x_t, t) - (x₁ - ε)||²
+            
+            // BACKPROPAGATE and update
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+            train_losses.append(loss.item())
+        
+        scheduler.step()  // Decay learning rate after each epoch
+    
+    RETURN time_conditioned_unet, train_losses
+    
+    Key insight: The model learns to predict the velocity vector (flow) that moves
+                 from any intermediate noisy state x_t toward the clean image x₁.
+                 This enables iterative generation via Euler integration.</code></pre>
+                </div>
+
+                <h4>Part 2.3: Sampling from the Time-Conditioned UNet</h4>
+                <p>
+                    <strong>Sampling algorithm:</strong> To generate images, I start with pure noise $x_0 = \epsilon$ and iteratively 
+                    update using Euler integration:
+                </p>
+                $$x_{t+\Delta t} = x_t + \Delta t \cdot u_{\theta}(x_t, t)$$
+                <p>
+                    where I use 50 timesteps ($\Delta t = 1/50$) to integrate from $t=0$ to $t=1$.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Flow matching sampling (pseudocode)</div>
+                    <pre><code>FUNCTION sample_flow_matching(time_conditioned_unet, img_wh, num_ts=50, seed=0):
+    """
+    Generate images by iteratively denoising from pure noise using flow matching.
+    
+    Input:
+        time_conditioned_unet: Trained TimeConditionalUNet model
+        img_wh: (height, width) tuple for output image size
+        num_ts: Number of timesteps for Euler integration (default 50)
+        seed: Random seed for reproducibility
+    
+    Output:
+        generated_image: Generated image x₁
+    """
+    
+    set_random_seed(seed)
+    device = get_device(time_conditioned_unet)
+    
+    // START with pure noise
+    x_t = sample_gaussian_noise(shape=(1, 1, img_wh[0], img_wh[1]), device=device)
+    // x₀ = ε ~ N(0, I)
+    
+    // CREATE timestep schedule: t from 0 to 1
+    timesteps = linspace(0, 1, num_ts + 1)  // [0, Δt, 2Δt, ..., 1]
+    
+    // ITERATIVE denoising via Euler integration
+    FOR i IN range(num_ts):
+        t = timesteps[i]  // Current timestep
+        t_next = timesteps[i + 1]  // Next timestep
+        dt = t_next - t  // Step size for this iteration
+        
+        // NORMALIZE timestep for UNet input
+        t_input = t.view(1, 1)
+        
+        // PREDICT flow at current state
+        v_pred = time_conditioned_unet(x_t, t_input)  // u_θ(x_t, t)
+        
+        // UPDATE state using Euler integration
+        // x_{t+dt} = x_t + dt · u_θ(x_t, t)
+        x_t = x_t + dt * v_pred
+    
+    // x_t now contains the generated image x₁
+    RETURN x_t
+    
+    Key insight: Starting from pure noise, we iteratively follow the learned flow
+                 field to gradually transform noise into a realistic image. The flow
+                 field guides the transformation at each timestep.</code></pre>
+                </div>
+                <p>
+                    <strong>Training details:</strong> I used Adam optimizer with initial learning rate $10^{-2}$, exponential 
+                    learning rate decay with $\gamma = 0.1^{1/10} \approx 0.794$ (decaying by factor of 0.1 over 10 epochs), 
+                    batch size 64, hidden dimension $D=64$, and trained for 10 epochs.
+                </p>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part22_time_conditioned_train_loss.jpg" alt="Time-conditioned training loss">
+                    <div class="project-caption">Training loss for the time-conditioned UNet over the full schedule.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part23_time_conditioned_samples.jpg" alt="Time-conditioned sampling results">
+                    <div class="project-caption">Sampling results from the time-conditioned UNet after 1, 5, and 10 epochs. Digits become progressively more legible as training proceeds.</div>
+                </div>
+
+                <h3>Part 2.4-2.6: Class-Conditioned Flow Matching UNet</h3>
+                <p>
+                    To improve generation quality and enable class-specific control, I extended the time-conditioned UNet with 
+                    class conditioning. The model now takes both a timestep $t$ and a class label $c \in \{0, 1, \ldots, 9\}$ 
+                    (representing digit classes) as inputs.
+                </p>
+
+                <h4>Part 2.4: Adding Class-Conditioning to UNet</h4>
+                <p>
+                    <strong>Class conditioning mechanism:</strong> I added two additional FCBlock modules for class conditioning, 
+                    similar to the time conditioning. The class label is converted to a one-hot vector $c_{\text{onehot}} \in \mathbb{R}^{10}$. 
+                    The conditioning is applied via a combination of multiplication and addition:
+                </p>
+                <ul>
+                    <li>After unflatten: $\text{unflatten} = c_1 \odot \text{unflatten} + t_1$</li>
+                    <li>After first upsampling: $\text{up}_1 = c_2 \odot \text{up}_1 + t_2$</li>
+                </ul>
+                <p>
+                    where $c_1 = \text{FCBlock}_{c1}(c_{\text{onehot}})$ and $c_2 = \text{FCBlock}_{c2}(c_{\text{onehot}})$.
+                </p>
+                <p>
+                    <strong>Classifier-free guidance:</strong> To enable unconditional generation and improve quality via guidance, 
+                    I implemented classifier-free guidance (CFG) similar to Part A. During training, with probability $p_{\text{uncond}} = 0.1$, 
+                    I set the class conditioning vector to zero (mask it out), allowing the model to learn both conditional and 
+                    unconditional flows. During sampling, I use CFG with scale $\gamma = 5.0$:
+                </p>
+                $$u = u_{\text{uncond}} + \gamma \cdot (u_{\text{cond}} - u_{\text{uncond}})$$
+                <p>
+                    where $u_{\text{uncond}}$ is the flow with $c=0$ (unconditional) and $u_{\text{cond}}$ is the flow with the 
+                    target class $c$.
+                </p>
+
+                <h4>Part 2.5: Training the Class-Conditioned UNet</h4>
+                <p>
+                    <strong>Training details:</strong> I used the same training setup as the time-conditioned model: Adam optimizer 
+                    with initial LR $10^{-2}$, exponential LR decay ($\gamma = 0.1^{1/10}$), batch size 64, hidden dimension $D=64$, 
+                    and trained for 10 epochs. During sampling, I used 300 timesteps for higher quality generation.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Class-conditioned flow matching training (pseudocode)</div>
+                    <pre><code>FUNCTION train_class_conditioned_flow_matching(class_unet, train_loader, num_epochs, p_uncond=0.1):
+    """
+    Train a class-conditioned UNet to predict flow fields with classifier-free guidance.
+    
+    Input:
+        class_unet: ClassConditionalUNet model
+        train_loader: DataLoader for (images, labels) pairs
+        num_epochs: Number of training epochs
+        p_uncond: Probability of dropping class conditioning (default 0.1)
+    
+    Output:
+        trained_unet: Trained class-conditioned flow matching model
+        train_losses: List of training losses
+    """
+    
+    optimizer = Adam(class_unet.parameters(), lr=1e-2)
+    scheduler = ExponentialLR(optimizer, gamma=0.1^(1/10))
+    criterion = MSELoss()
+    train_losses = []
+    
+    FOR epoch IN range(num_epochs):
+        FOR batch IN train_loader:
+            // Get clean images and class labels from batch
+            x_1 = batch.images  // Clean images x₁
+            c = batch.labels  // Class labels c ∈ {0, 1, ..., 9}
+            
+            // SAMPLE random timestep t ~ U(0, 1)
+            N = x_1.shape[0]
+            t = sample_uniform(N, min=0, max=1)  // t ~ U(0, 1)
+            t_normalized = t.view(N, 1)  // Reshape for UNet input
+            
+            // SAMPLE noise
+            ε = sample_gaussian_noise(shape=x_1.shape)  // ε ~ N(0, I)
+            
+            // CREATE intermediate noisy image via linear interpolation
+            x_t = (1 - t.view(N, 1, 1, 1)) * ε + t.view(N, 1, 1, 1) * x_1
+            
+            // COMPUTE ground-truth flow
+            v_true = x_1 - ε  // Flow from noise to clean image
+            
+            // CLASSIFIER-FREE GUIDANCE: randomly mask out class conditioning
+            mask = (sample_uniform(N) > p_uncond).float()  // 90% keep (mask=1), 10% drop (mask=0)
+            
+            // PREDICT flow using class-conditioned UNet
+            // UNet internally uses mask to zero out class conditioning when mask=0
+            v_pred = class_unet(x_t, c, t_normalized, mask=mask)
+            
+            // COMPUTE L2 loss
+            loss = criterion(v_pred, v_true)
+            
+            // BACKPROPAGATE and update
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+            train_losses.append(loss.item())
+        
+        scheduler.step()  // Decay learning rate after each epoch
+    
+    RETURN class_unet, train_losses
+    
+    Key insight: By randomly dropping class conditioning during training (10% of the time),
+                 the model learns both conditional and unconditional flows, enabling
+                 classifier-free guidance during sampling for improved quality.</code></pre>
+                </div>
+
+                <h4>Part 2.6: Sampling from the Class-Conditioned UNet</h4>
+                <p>
+                    Now we sample with class-conditioning and use classifier-free guidance with $\gamma = 5.0$ to improve generation 
+                    quality and ensure class fidelity.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-title">Class-conditioned flow matching sampling with CFG (pseudocode)</div>
+                    <pre><code>FUNCTION sample_class_conditioned_flow_matching(class_unet, class_label, img_wh, 
+                                                  num_ts=300, guidance_scale=5.0, seed=0):
+    """
+    Generate class-specific images using flow matching with classifier-free guidance.
+    
+    Input:
+        class_unet: Trained ClassConditionalUNet model
+        class_label: Target class c ∈ {0, 1, ..., 9}
+        img_wh: (height, width) tuple for output image size
+        num_ts: Number of timesteps for Euler integration (default 300)
+        guidance_scale: CFG scale γ (default 5.0)
+        seed: Random seed for reproducibility
+    
+    Output:
+        generated_image: Generated image x₁ of specified class
+    """
+    
+    set_random_seed(seed)
+    device = get_device(class_unet)
+    
+    // START with pure noise
+    x_t = sample_gaussian_noise(shape=(1, 1, img_wh[0], img_wh[1]), device=device)
+    
+    // CREATE timestep schedule: t from 0 to 1
+    timesteps = linspace(0, 1, num_ts + 1)
+    
+    // PREPARE class conditioning
+    c = tensor([class_label], device=device)  // Target class
+    N = c.shape[0]
+    
+    // ITERATIVE denoising via Euler integration with CFG
+    FOR i IN range(num_ts):
+        t = timesteps[i]
+        t_next = timesteps[i + 1]
+        dt = t_next - t  // Step size for this iteration
+        t_batch = t.view(1, 1).expand(N, 1)  // Expand timestep for batch
+        
+        // COMPUTE CONDITIONAL flow (with class conditioning enabled)
+        mask_cond = tensor([1.0] * N, device=device)  // mask=1 keeps conditioning
+        v_cond = class_unet(x_t, c, t_batch, mask=mask_cond)  // u_θ(x_t, t, c)
+        
+        // COMPUTE UNCONDITIONAL flow (class conditioning masked out)
+        mask_uncond = tensor([0.0] * N, device=device)  // mask=0 drops conditioning
+        v_uncond = class_unet(x_t, c, t_batch, mask=mask_uncond)  // u_θ(x_t, t, c with mask=0)
+        
+        // APPLY CLASSIFIER-FREE GUIDANCE
+        // u = u_uncond + γ · (u_cond - u_uncond)
+        v = v_uncond + guidance_scale * (v_cond - v_uncond)
+        
+        // UPDATE state using Euler integration
+        x_t = x_t + dt * v
+    
+    RETURN x_t
+    
+    Key insight: CFG amplifies the difference between conditional and unconditional
+                 flows, steering generation toward the target class while maintaining
+                 high quality. Higher guidance_scale increases class fidelity but
+                 may reduce diversity.</code></pre>
+                </div>
+
+                <div class="image-container">
+                    <img src="project5/project5b_images/class_conditioned_train_loss.jpg" alt="Class-conditioned training loss">
+                    <div class="project-caption">Training loss curve for the class-conditioned UNet.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part25_class_conditioned_samples.jpg" alt="Class-conditioned sampling grid">
+                    <div class="project-caption">Sampling results from the class-conditioned UNet after 1, 5, and 10 epochs (4 samples per digit).</div>
+                </div>
+
+                <h4>No-Scheduler Ablation Study</h4>
+                <p>
+                    As requested, I conducted an ablation study to remove the exponential learning rate scheduler while maintaining 
+                    comparable performance. I experimented with two approaches:
+                </p>
+                <ol>
+                    <li><strong>Fixed learning rate with Adam:</strong> Removed the scheduler and used a lower learning rate 
+                        of $10^{-4}$ throughout training.</li>
+                    <li><strong>Lower learning rate with AdamW:</strong> Used AdamW optimizer (which includes weight decay) with 
+                        a lower fixed learning rate of $5 \times 10^{-4}$ and weight decay of $10^{-4}$.</li>
+                </ol>
+                <p>
+                    Both approaches achieved comparable performance to the scheduler-based training. The key insight is that 
+                    using a lower fixed learning rate (compared to the initial scheduler LR of $10^{-2}$) prevents training 
+                    instability, while weight decay in AdamW provides additional regularization that helps stabilize training 
+                    without the need for learning rate decay.
+                </p>
+                <div class="image-container">
+                    <img src="project5/project5b_images/class_conditioned_no_scheduler_train_loss.jpg" alt="Class-conditioned no scheduler training loss">
+                    <div class="project-caption">Training loss for class-conditioned UNet without scheduler, using Adam with fixed LR $10^{-4}$.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part25_class_conditioned_no_scheduler_samples.jpg" alt="Class-conditioned no scheduler samples">
+                    <div class="project-caption">Sampling results from the class-conditioned UNet trained without scheduler (Adam, fixed LR $10^{-4}$) after 1, 5, and 10 epochs.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/class_conditioned_adamw_no_scheduler_train_loss.jpg" alt="Class-conditioned AdamW no scheduler training loss">
+                    <div class="project-caption">Training loss for class-conditioned UNet without scheduler, using AdamW with fixed LR $5 \times 10^{-4}$ and weight decay $10^{-4}$.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part25_class_conditioned_adamw_no_scheduler_samples.jpg" alt="Class-conditioned AdamW no scheduler samples">
+                    <div class="project-caption">Sampling results from the class-conditioned UNet trained without scheduler (AdamW, fixed LR $5 \times 10^{-4}$, weight decay $10^{-4}$) after 1, 5, and 10 epochs. This configuration achieves comparable quality to the scheduler-based training.</div>
+                </div>
+                <p>
+                    <strong>Results and analysis:</strong> Both no-scheduler variants achieved comparable generation quality to 
+                    the scheduler-based training. The Adam variant with fixed LR $10^{-4}$ and the AdamW variant with fixed 
+                    LR $5 \times 10^{-4}$ and weight decay $10^{-4}$ both produced similar results. This demonstrates that we 
+                    can simplify the training setup by removing the scheduler while maintaining performance through careful 
+                    hyperparameter tuning—specifically, using a lower fixed learning rate (compared to the initial scheduler 
+                    LR of $10^{-2}$) prevents training instability, and weight decay in AdamW provides additional regularization 
+                    that helps stabilize training without the need for learning rate decay.
+                </p>
+            </div>
         </div>
     </main>
     <script src="../ascii-loader.js"></script>
