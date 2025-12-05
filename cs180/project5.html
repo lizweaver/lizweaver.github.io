@@ -1030,13 +1030,14 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                 </div>
                 <div class="image-container">
                     <img src="project5/project5b_images/part122_ood_test_results.jpg" alt="OOD sigma denoising results">
-                    <div class="project-caption">Out-of-distribution σ sweep on the trained denoiser, holding the same test digits and varying σ. The model was trained only on σ=0.5, so this tests generalization to different noise levels. Performance degrades for very low (σ=0.0, 0.2) and very high (σ=0.8, 1.0) noise levels, as expected for a model trained on a specific noise level.</div>
+                    <div class="project-caption">Out-of-distribution σ sweep on the trained denoiser, holding the same test digits and varying σ. The model was trained only on σ=0.5, so this tests generalization to different noise levels. Performance degrades for very high (σ=0.8, 1.0) noise levels, as expected for a model trained on a specific noise level.</div>
                 </div>
                 <p>
                     <strong>Out-of-distribution analysis:</strong> The model was trained exclusively on noise level $\sigma = 0.5$. 
                     When tested on different noise levels ($\sigma \in \{0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0\}$), performance 
                     degrades for noise levels far from the training distribution. At very low noise ($\sigma = 0.0, 0.2$), the 
-                    model may over-denoise or introduce artifacts. At very high noise ($\sigma = 0.8, 1.0$), the model struggles 
+                    model seems to perform just as well as at the training noise level, however at $\sigma = 0.4$, the model introduces 
+                    a bit of a squiggly line in the 7's digit. At very high noise ($\sigma = 0.8, 1.0$), the model struggles 
                     to recover structure. This demonstrates the importance of matching the training and inference noise distributions, 
                     or using a more flexible approach like flow matching that handles multiple noise levels.
                 </p>
@@ -1428,8 +1429,16 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                     <div class="project-caption">Training loss curve for the class-conditioned UNet.</div>
                 </div>
                 <div class="image-container">
-                    <img src="project5/project5b_images/part25_class_conditioned_samples.jpg" alt="Class-conditioned sampling grid">
-                    <div class="project-caption">Sampling results from the class-conditioned UNet after 1, 5, and 10 epochs (4 samples per digit).</div>
+                    <img src="project5/project5b_images/part25_class_conditioned_samples_Epoch 1.jpg" alt="Class-conditioned sampling grid epoch 1">
+                    <div class="project-caption">Sampling results from the class-conditioned UNet after epoch 1 (4 samples per digit).</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part25_class_conditioned_samples_Epoch 5.jpg" alt="Class-conditioned sampling grid epoch 5">
+                    <div class="project-caption">Sampling results from the class-conditioned UNet after epoch 5 (4 samples per digit).</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part25_class_conditioned_samples_Epoch 10.jpg" alt="Class-conditioned sampling grid epoch 10">
+                    <div class="project-caption">Sampling results from the class-conditioned UNet after epoch 10 (4 samples per digit).</div>
                 </div>
 
                 <h4>No-Scheduler Ablation Study</h4>
@@ -1454,25 +1463,43 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                     <div class="project-caption">Training loss for class-conditioned UNet without scheduler, using Adam with fixed LR $10^{-4}$.</div>
                 </div>
                 <div class="image-container">
-                    <img src="project5/project5b_images/part25_class_conditioned_no_scheduler_samples.jpg" alt="Class-conditioned no scheduler samples">
-                    <div class="project-caption">Sampling results from the class-conditioned UNet trained without scheduler (Adam, fixed LR $10^{-4}$) after 1, 5, and 10 epochs.</div>
+                    <img src="project5/project5b_images/part25_class_conditioned_no_scheduler_samples_Epoch 1.jpg" alt="Class-conditioned no scheduler samples epoch 1">
+                    <div class="project-caption">Sampling results from the class-conditioned UNet trained without scheduler (Adam, fixed LR $10^{-4}$) after epoch 1.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part25_class_conditioned_no_scheduler_samples_Epoch 5.jpg" alt="Class-conditioned no scheduler samples epoch 5">
+                    <div class="project-caption">Sampling results from the class-conditioned UNet trained without scheduler (Adam, fixed LR $10^{-4}$) after epoch 5.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part25_class_conditioned_no_scheduler_samples_Epoch 10.jpg" alt="Class-conditioned no scheduler samples epoch 10">
+                    <div class="project-caption">Sampling results from the class-conditioned UNet trained without scheduler (Adam, fixed LR $10^{-4}$) after epoch 10.</div>
                 </div>
                 <div class="image-container">
                     <img src="project5/project5b_images/class_conditioned_adamw_no_scheduler_train_loss.jpg" alt="Class-conditioned AdamW no scheduler training loss">
                     <div class="project-caption">Training loss for class-conditioned UNet without scheduler, using AdamW with fixed LR $5 \times 10^{-4}$ and weight decay $10^{-4}$.</div>
                 </div>
                 <div class="image-container">
-                    <img src="project5/project5b_images/part25_class_conditioned_adamw_no_scheduler_samples.jpg" alt="Class-conditioned AdamW no scheduler samples">
-                    <div class="project-caption">Sampling results from the class-conditioned UNet trained without scheduler (AdamW, fixed LR $5 \times 10^{-4}$, weight decay $10^{-4}$) after 1, 5, and 10 epochs. This configuration achieves comparable quality to the scheduler-based training.</div>
+                    <img src="project5/project5b_images/part25_class_conditioned_adamw_no_scheduler_samples_Epoch 1.jpg" alt="Class-conditioned AdamW no scheduler samples epoch 1">
+                    <div class="project-caption">Sampling results from the class-conditioned UNet trained without scheduler (AdamW, fixed LR $5 \times 10^{-4}$, weight decay $10^{-4}$) after epoch 1.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part25_class_conditioned_adamw_no_scheduler_samples_Epoch 5.jpg" alt="Class-conditioned AdamW no scheduler samples epoch 5">
+                    <div class="project-caption">Sampling results from the class-conditioned UNet trained without scheduler (AdamW, fixed LR $5 \times 10^{-4}$, weight decay $10^{-4}$) after epoch 5.</div>
+                </div>
+                <div class="image-container">
+                    <img src="project5/project5b_images/part25_class_conditioned_adamw_no_scheduler_samples_Epoch 10.jpg" alt="Class-conditioned AdamW no scheduler samples epoch 10">
+                    <div class="project-caption">Sampling results from the class-conditioned UNet trained without scheduler (AdamW, fixed LR $5 \times 10^{-4}$, weight decay $10^{-4}$) after epoch 10. This configuration achieves comparable quality to the scheduler-based training.</div>
                 </div>
                 <p>
-                    <strong>Results and analysis:</strong> Both no-scheduler variants achieved comparable generation quality to 
-                    the scheduler-based training. The Adam variant with fixed LR $10^{-4}$ and the AdamW variant with fixed 
-                    LR $5 \times 10^{-4}$ and weight decay $10^{-4}$ both produced similar results. This demonstrates that we 
-                    can simplify the training setup by removing the scheduler while maintaining performance through careful 
-                    hyperparameter tuning—specifically, using a lower fixed learning rate (compared to the initial scheduler 
-                    LR of $10^{-2}$) prevents training instability, and weight decay in AdamW provides additional regularization 
-                    that helps stabilize training without the need for learning rate decay.
+                    <strong>Results and analysis:</strong> The no-scheduler variants achieved comparable generation quality to 
+                    the scheduler-based training, with some differences between approaches. The Adam variant with fixed LR $10^{-4}$ 
+                    performed very well, producing high-quality digits with only minor issues (one generated "2" digit showing some 
+                    artifacts). The AdamW variant with fixed LR $5 \times 10^{-4}$ and weight decay $10^{-4}$ also achieved good 
+                    results, though it exhibited slightly more artifacting in some generated samples compared to the Adam variant. 
+                    This demonstrates that we can simplify the training setup by removing the scheduler while maintaining performance 
+                    through careful hyperparameter tuning—specifically, using a lower fixed learning rate (compared to the initial 
+                    scheduler LR of $10^{-2}$) prevents training instability. The Adam variant with a simple fixed LR appears to be 
+                    the most straightforward solution, achieving excellent results without the complexity of weight decay.
                 </p>
             </div>
         </div>
