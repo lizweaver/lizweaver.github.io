@@ -1493,8 +1493,8 @@ FUNCTION iterative_denoise(noisy_image, start_index, prompt_embeddings, timestep
                 <p>
                     <strong>Results and analysis:</strong> The no-scheduler variants achieved comparable generation quality to 
                     the scheduler-based training, with some differences between approaches. The Adam variant with fixed LR $10^{-4}$ 
-                    performed very well, producing high-quality digits with only minor issues (one generated "2" digit showing some 
-                    artifacts). The AdamW variant with fixed LR $5 \times 10^{-4}$ and weight decay $10^{-4}$ also achieved good 
+                    performed very well, producing high-quality digits with only minor issues (one generated "2" digit missing a bit 
+                    of the middle). The AdamW variant with fixed LR $5 \times 10^{-4}$ and weight decay $10^{-4}$ also achieved good 
                     results, though it exhibited slightly more artifacting in some generated samples compared to the Adam variant. 
                     This demonstrates that we can simplify the training setup by removing the scheduler while maintaining performance 
                     through careful hyperparameter tuning—specifically, using a lower fixed learning rate (compared to the initial 
