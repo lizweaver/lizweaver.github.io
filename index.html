@@ -3,35 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elizabeth Weaver</title>
+    <title>e.j.w</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="sky-scene.css?v=3">
 </head>
 <body>
     <header>
-        <a href="index.html" style="text-decoration: none;"><h1 class="site-title">Elizabeth Weaver</h1></a>
+        <a href="index.html" class="site-title-link">
+            <svg class="site-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2C7.8 2 5 5.4 5 9.3c0 3.5 2.4 6 4.5 7.4h5C16.6 15.3 19 12.8 19 9.3 19 5.4 16.2 2 12 2z"/>
+                <line x1="9.5" y1="16.7" x2="10.3" y2="19"/>
+                <line x1="14.5" y1="16.7" x2="13.7" y2="19"/>
+                <rect x="10" y="19" width="4" height="2.6" rx="0.3"/>
+            </svg>
+            <h1 class="site-title">e.j.w</h1>
+        </a>
         <nav>
-            <a href="index.html" class="nav-gray active">Home</a>
-            <a href="projects.html" class="nav-dark">Projects</a>
-            <a href="blog.html" class="nav-green">Blog</a>
+            <a href="index.html" class="nav-orange active">home</a>
+            <span class="nav-sep">/</span>
+            <a href="projects.html" class="nav-red">projects</a>
+            <span class="nav-sep">/</span>
+            <a href="https://scholar.google.com/citations?user=2SyvWcsAAAAJ&hl=en&authuser=1" class="nav-blue" target="_blank" rel="noopener">scholar</a>
+            <span class="nav-sep">/</span>
+            <a href="blog.html" class="nav-navy">musings</a>
         </nav>
     </header>
 
-    <div class="ascii-art"></div>
-
-    <main class="main-content home">
+    <main class="main-content">
         <div class="profile-section">
-            <h1><b>Hi,</b> I'm Liz</h1>
-            <p>I'm an undergraduate student at UC Berkeley studying Computer Science. I am also a student in Professor <a href="https://a1k12.github.io/" class="nav-green">Aditi Krishnapriyan</a>'s lab at Berkeley AI Research (BAIR).</p>
-            <p>My interests mainly lie in the spaces of <b>geometric deep learning</b> and <b>AI+Science</b>. I'm currently working on physics inspired machine learning for molecular dynamics.</p>
-            <p>Outside of research, I enjoy dabbling in various books and textbooks, dancing, and hiking.</p>
+            <h1>hi, i'm liz</h1>
+            <p>i'm an undergraduate student at UC Berkeley studying computer science. i am also a student in Professor <a href="https://a1k12.github.io/">Aditi Krishnapriyan</a>'s lab at Berkeley AI Research (BAIR).</p>
+            <p>my interests mainly lie in the space of AI+Science. i'm currently working on physics inspired machine learning for molecular dynamics.</p>
+            <p>outside of research, i enjoy dabbling in various books and textbooks, dancing, and hiking.</p>
         </div>
-        <div class="profile-image-container">
-            <img src="headshot.jpg" alt="Elizabeth Weaver" class="profile-image">
-        </div>
+
+        <section class="contact-section" id="contact">
+            <h2 class="contact-title">get in touch</h2>
+            <p>my email is elizabeth [dot] weaver [at] berkeley [dot] edu<br>please reach out :)</p>
+
+        </section>
     </main>
-    <script src="ascii-loader.js"></script>
+
+    <footer class="site-footer">
+        <p class="credit-note">all ascii art on this site was created by me.</p>
+    </footer>
+
+    <script>
+      window.SKY_BALLOONS = [
+        { shape: 'large', palette: 'red',    x: '85%', y: '12vh', fontSizePx: 18 },
+        { shape: 'small', palette: 'blue',   x: '8%',  y: '68vh', fontSizePx: 20 },
+        { shape: 'tiny',  palette: 'orange', x: '70%', y: '100vh', fontSizePx: 14 },
+      ];
+    </script>
+    <script type="module" src="sky-scene.js?v=3"></script>
 </body>
 </html>

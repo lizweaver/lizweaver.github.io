@@ -1,0 +1,68 @@
+:root {
+  --ascii-sky-color: #FDF7EE;
+}
+
+html {
+  background: var(--ascii-sky-color);
+}
+
+body {
+  background: var(--ascii-sky-color);
+  position: relative;
+  isolation: isolate;
+}
+
+#balloon-container,
+#bird-container {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 100vw;
+  pointer-events: none;
+  overflow: hidden;
+  transform: translateX(-50%);
+  font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+#balloon-container {
+  z-index: -1;
+  height: 100vh;
+}
+
+#bird-container {
+  z-index: -2;
+  height: 100vh; /* overridden by JS to document height */
+}
+
+.ascii-balloon,
+.ascii-bird {
+  position: absolute;
+  white-space: pre;
+  line-height: 1.25;
+  font-family: inherit;
+  font-weight: 700;
+  pointer-events: none;
+  will-change: transform;
+  user-select: none;
+}
+
+.ascii-balloon span,
+.ascii-bird span {
+  font-weight: 700;
+  -webkit-text-stroke: 0.4px;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .ascii-balloon,
+  .ascii-bird {
+    will-change: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  #balloon-container,
+  #bird-container {
+    display: none;
+  }
+}

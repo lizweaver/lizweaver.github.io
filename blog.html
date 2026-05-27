@@ -3,30 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elizabeth Weaver</title>
+    <title>musings - e.j.w</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="sky-scene.css">
 </head>
 <body>
     <header>
-        <a href="index.html" style="text-decoration: none;"><h1 class="site-title">Elizabeth Weaver</h1></a>
+        <a href="index.html" class="site-title-link">
+            <svg class="site-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2C7.8 2 5 5.4 5 9.3c0 3.5 2.4 6 4.5 7.4h5C16.6 15.3 19 12.8 19 9.3 19 5.4 16.2 2 12 2z"/>
+                <line x1="9.5" y1="16.7" x2="10.3" y2="19"/>
+                <line x1="14.5" y1="16.7" x2="13.7" y2="19"/>
+                <rect x="10" y="19" width="4" height="2.6" rx="0.3"/>
+            </svg>
+            <h1 class="site-title">e.j.w<span class="site-title-path">/musings</span></h1>
+        </a>
         <nav>
-            <a href="index.html" class="nav-gray active">Home</a>
-            <a href="projects.html" class="nav-dark">Projects</a>
-            <a href="blog.html" class="nav-green">Blog</a>
+            <a href="index.html" class="nav-orange">home</a>
+            <span class="nav-sep">/</span>
+            <a href="projects.html" class="nav-red">projects</a>
+            <span class="nav-sep">/</span>
+            <a href="https://scholar.google.com/citations?user=2SyvWcsAAAAJ&hl=en&authuser=1" class="nav-blue" target="_blank" rel="noopener">scholar</a>
+            <span class="nav-sep">/</span>
+            <a href="blog.html" class="nav-navy active">musings</a>
         </nav>
     </header>
 
-    <div class="ascii-art"></div>
-
-    <main class="main-content blog">
+    <main class="main-content">
         <div class="profile-section">
-            <h1>Blog</h1>
-            <p>Under construction, please come back later!!</p>
+            <h1>musings</h1>
+            <p class="under-construction">under construction, please come back later!!</p>
         </div>
     </main>
-    <script src="ascii-loader.js"></script>
+
+    <script type="module" src="sky-scene.js"></script>
 </body>
 </html>
