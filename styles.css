@@ -203,7 +203,7 @@ nav a.active {
 
 /* Contact / disclaimer block (below the hero, scrolled into view) */
 .contact-section {
-    margin-top: 35vh;
+    margin-top: 40vh;
     margin-left: 5rem;
     margin-bottom: 6rem;
     max-width: 640px;
@@ -590,7 +590,7 @@ pre code { background: none; padding: 0; font-size: inherit; }
     nav { gap: 0.4rem; flex-wrap: wrap; }
     .profile-section { margin-top: 1.5rem; margin-left: 0; }
     .profile-section h1 { font-size: 2.25rem; }
-    .contact-section { margin-top: 35vh; margin-left: 0; }
+    .contact-section { margin-top: 40vh; margin-left: 0; }
     .contact-title { font-size: 1.6rem; }
     .project-header h1 { font-size: 1.8rem; }
     .comparison-container {
